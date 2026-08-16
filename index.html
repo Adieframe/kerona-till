@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, maximum-scale=1">
+<title>Kerona on the go</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#f6f1ea">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Kerona on the go">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+  /* Light, high-contrast palette — the activation is outdoors in daylight,
+     where a dark theme washes out at max screen brightness. */
+  :root{
+    --bg:#f6f1ea; --ink:#1b1512; --muted:#7a6a5d;
+    --card:#ffffff; --line:#ddd0c1;
+    --amber:#c8761a; --cash:#1f7a4d; --card-pay:#1d5fa8;
+    --pad: 10px;
+    /* one colour per drink, so the tile is recognised by hue before the word is read */
+    --cappuccino:#d3ab7e; --cappuccino-edge:#b08a5d;
+    --tea:#b04a33;        --tea-edge:#8d3826;
+    --hotchoc:#4d3123;    --hotchoc-edge:#33200f;
+    --soup:#e6b32a;       --soup-edge:#c1901a;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:16px/1.25 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    user-select:none; -webkit-user-select:none;
+    overscroll-behavior:none;
+  }
+  button{font:inherit; color:inherit; touch-action:manipulation; cursor:pointer;}
+
+  .stage{perspective:1800px; height:100dvh; height:100vh;}
+  .card{position:relative;width:100%;height:100%;transform-style:preserve-3d;
+        transition:transform .45s cubic-bezier(.2,.8,.2,1);}
+  .card.flipped{transform:rotateY(180deg);}
+  .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+        display:flex;flex-direction:column;
+        padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+  .face.back{transform:rotateY(180deg);}
+
+  /* ---- header (the flip target) ---- */
+  .bar{
+    flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+    gap:8px; padding:14px 16px; background:var(--ink); color:#fff;
+    font-weight:700; letter-spacing:.04em; font-size:14px; text-transform:uppercase;
+    border:0; width:100%; text-align:left;
+  }
+  .bar .hint{font-size:13px; font-weight:600; opacity:.75; letter-spacing:.02em; text-transform:none;}
+  .bar:active{background:#000;}
+
+  /* ---- line-art icons ---- */
+  .ico{fill:none; stroke:currentColor; stroke-width:2.5;
+       stroke-linecap:round; stroke-linejoin:round; flex:0 0 auto;}
+  .prod .ico{width:clamp(52px,19vw,88px); height:clamp(52px,19vw,88px); stroke-width:2.2;}
+
+  /* ---- basket strip (sits under the drinks, above the pay buttons) ---- */
+  .basket{
+    flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+    gap:10px; margin:0 var(--pad) var(--pad); padding:10px 12px 10px 16px;
+    background:var(--card); border:2px solid var(--line); border-radius:14px;
+    min-height:66px;
+  }
+  .basket .amt{display:flex; align-items:baseline; gap:8px;}
+  .basket .amt b{font-size:34px; font-weight:800; letter-spacing:-.02em; line-height:1;}
+  .basket .amt i{font-style:normal; font-size:17px; font-weight:700;}
+  .basket .amt small{font-size:17px; font-weight:700; color:var(--muted);}
+  .basket.empty .amt{color:var(--muted); font-weight:600; font-size:17px;}
+  .undo{
+    border:2px solid var(--line); background:#fff; border-radius:10px;
+    padding:13px 18px; font-weight:800; font-size:15px; color:var(--ink);
+  }
+  .undo:disabled{opacity:.3;}
+  .undo:active:not(:disabled){background:#f0e7db;}
+
+  /* ---- product grid ---- */
+  .grid{
+    flex:1 1 auto; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
+    gap:var(--pad); padding:var(--pad); min-height:0;
+  }
+  .prod{
+    position:relative; border:3px solid; border-radius:16px;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:10px; padding:8px;
+    font-weight:800; font-size:clamp(17px,4.6vw,24px); line-height:1.1; text-align:center;
+    transition:transform .06s ease, filter .06s ease;
+  }
+  .prod:active{transform:scale(.97); filter:brightness(1.1);}
+  .prod[data-key="cappuccino"]{background:var(--cappuccino); border-color:var(--cappuccino-edge); color:#2b1c0e;}
+  .prod[data-key="tea"]       {background:var(--tea);        border-color:var(--tea-edge);        color:#fff;}
+  .prod[data-key="hotchoc"]   {background:var(--hotchoc);    border-color:var(--hotchoc-edge);    color:#fff;}
+  .prod[data-key="soup"]      {background:var(--soup);       border-color:var(--soup-edge);       color:#2b1c0e;}
+  /* white pill reads against all four tile colours */
+  .prod .n{
+    display:none; min-width:52px; padding:4px 12px; border-radius:99px;
+    background:#fff; color:var(--ink); font-size:26px; font-weight:800;
+    box-shadow:0 2px 6px rgba(0,0,0,.18);
+  }
+  .prod.has .n{display:block;}
+
+  /* ---- pay buttons ---- */
+  .pay{
+    position:relative;   /* anchors the toast directly above this row */
+    flex:0 0 auto; display:grid; grid-template-columns:1fr 1fr; gap:var(--pad);
+    padding:0 var(--pad) calc(var(--pad) + 4px);
+  }
+  .pay button{
+    border:0; border-radius:16px; color:#fff; padding:20px 8px;
+    font-size:22px; font-weight:800; letter-spacing:.03em;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    transition:transform .06s ease, filter .06s ease;
+  }
+  .pay button span{font-size:14px; font-weight:600; opacity:.9;}
+  #cash{background:var(--cash);} #cardpay{background:var(--card-pay);}
+  .pay button:active:not(:disabled){transform:scale(.97); filter:brightness(1.15);}
+  /* ID selectors above out-rank a plain `.pay button:disabled`, so match on ID here too. */
+  #cash:disabled, #cardpay:disabled{background:#cfc4b6; color:#f6f1ea;}
+
+  /* ---- toast (undo last sale) ----
+     Sits above the pay row rather than over it, so CASH and CARD stay fully
+     visible while it is up. Fades rather than sliding, so it never lands on
+     top of the buttons on the way out. */
+  .toast{
+    /* left/right match .pay's own padding so the strip lines up with the buttons */
+    position:absolute; left:var(--pad); right:var(--pad); bottom:calc(100% + 8px);
+    background:var(--ink); color:#fff; border-radius:12px; padding:8px 8px 8px 16px;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    font-weight:700; font-size:15px; box-shadow:0 6px 20px rgba(0,0,0,.28); z-index:5;
+    opacity:0; transform:translateY(8px); pointer-events:none;
+    transition:opacity .18s ease, transform .18s ease;
+  }
+  .toast.show{opacity:1; transform:translateY(0); pointer-events:auto;}
+  .toast button{
+    background:#fff; color:var(--ink); border:0; border-radius:9px;
+    padding:10px 16px; font-weight:800; font-size:15px;
+  }
+
+  /* ---- totals face ---- */
+  .totals{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 0 16px;}
+  .hero{padding:20px 18px 16px; background:var(--card); border-bottom:2px solid var(--line);}
+  .hero .big{font-size:44px; font-weight:800; letter-spacing:-.02em; line-height:1;}
+  .hero .sub{margin-top:8px; color:var(--muted); font-weight:600; font-size:15px;}
+  .scope{display:flex; gap:8px; margin-top:14px;}
+  .scope button{
+    flex:1; border:2px solid var(--line); background:#fff; border-radius:10px;
+    padding:10px; font-weight:700; font-size:14px; color:var(--muted);
+  }
+  .scope button.on{background:var(--ink); border-color:var(--ink); color:#fff;}
+  h2{margin:20px 18px 8px; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);}
+  table{width:100%; border-collapse:collapse; background:var(--card);
+        border-top:2px solid var(--line); border-bottom:2px solid var(--line);}
+  td{padding:13px 18px; border-bottom:1px solid #eee4d7; font-size:17px;}
+  tr:last-child td{border-bottom:0;}
+  td.q{text-align:right; width:22%; font-weight:800;}
+  td.r{text-align:right; width:30%; font-weight:700; color:var(--muted); font-variant-numeric:tabular-nums;}
+  .acts{display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:18px;}
+  .acts button{
+    border:2px solid var(--ink); background:var(--ink); color:#fff;
+    border-radius:12px; padding:16px 8px; font-weight:700; font-size:15px;
+  }
+  .acts button.ghost{background:#fff; color:var(--ink);}
+  .note{padding:0 18px; color:var(--muted); font-size:13px; line-height:1.5;}
+  /* Small print, and it looks like small print — a press-and-hold, not a button
+     you can fire by accident. The 3s hold is enforced in the JS. */
+  .reset{
+    display:block; margin:14px auto 4px; border:0; background:none;
+    color:var(--muted); font-size:13px; font-weight:600;
+    text-decoration:underline; text-underline-offset:3px; padding:8px 12px;
+  }
+  .reset.holding{color:#a32020; text-decoration:none; font-weight:800;}
+</style>
+</head>
+<body>
+
+<!-- Kerona line-art icon set. Redrawn as SVG so it stays crisp at any size
+     and takes the tile colour via currentColor. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+ <g id="s-cappuccino"><g transform="rotate(-28 32 32)">
+  <ellipse cx="32" cy="32" rx="14.5" ry="21"/>
+  <path d="M32,11.5 C25,19.5 39,28 32,36 C25.5,43.5 39,46 32,52.5"/></g></g>
+ <g id="s-tea">
+  <!-- rooibos: a needle-leaf shrub, not a broad tea leaf -->
+  <path d="M13,57 Q19,26 48,11"/>
+  <path d="M15.1,48.6 L28.8,44.7"/>
+  <path d="M15.1,48.6 L6.3,37.5"/>
+  <path d="M18.5,40.3 L31.7,38.4"/>
+  <path d="M18.5,40.3 L11.8,28.7"/>
+  <path d="M22.9,32.6 L35.3,32.7"/>
+  <path d="M22.9,32.6 L18.2,21.1"/>
+  <path d="M28.3,25.7 L39.8,27.5"/>
+  <path d="M28.3,25.7 L25.6,14.4"/>
+  <path d="M34.8,19.6 L45.1,22.7"/>
+  <path d="M34.8,19.6 L33.8,8.9"/>
+  <path d="M42.4,14.2 L51.4,18.2"/>
+  <path d="M42.4,14.2 L42.8,4.3"/>
+  <path d="M48,11 L51.0,5.0"/>
+ </g>
+ <g id="s-hotchoc">
+  <path d="M39.9,12.4 L38.5,12.5 L37.8,12.9 L37.2,13.3 L36.6,13.7 L36.1,14.1 L35.6,14.5 L35.0,15.0 L34.5,15.4 L34.0,15.8 L33.5,16.3 L33.0,16.7 L32.4,17.1 L31.9,17.5 L31.4,18.0 L30.9,18.4 L30.4,18.8 L29.9,19.3 L29.4,19.7 L28.9,20.2 L28.4,20.6 L27.9,21.0 L27.4,21.5 L26.9,21.9 L26.5,22.4 L26.1,22.8 L25.6,23.3 L25.2,23.8 L24.8,24.3 L24.4,24.7 L24.1,25.2 L23.7,25.7 L23.4,26.2 L23.1,26.7 L22.8,27.2 L22.6,27.8 L22.3,28.3 L22.1,28.8 L21.9,29.4 L21.7,29.9 L21.6,30.5 L21.4,31.1 L21.3,31.7 L21.2,32.2 L21.2,32.8 L21.1,33.4 L21.1,34.0 L21.0,34.7 L21.0,35.3 L21.0,35.9 L21.1,36.5 L21.1,37.2 L21.1,37.8 L21.2,38.4 L21.3,39.1 L21.3,39.7 L21.4,40.4 L21.5,41.0 L21.6,41.7 L21.7,42.3 L21.8,43.0 L21.9,43.6 L21.9,44.3 L22.0,44.9 L22.1,45.6 L22.2,46.2 L22.3,46.9 L22.4,47.5 L22.4,48.2 L22.5,48.8 L22.6,49.5 L22.7,50.1 L22.7,50.8 L22.8,51.4 L22.9,52.1 L22.9,52.7 L23.0,53.4 L23.2,54.0 L23.4,54.7 L24.1,55.6 L24.1,55.6 L25.3,55.4 L25.9,55.0 L26.4,54.6 L26.9,54.1 L27.4,53.7 L27.9,53.3 L28.3,52.8 L28.8,52.4 L29.3,51.9 L29.7,51.5 L30.2,51.0 L30.7,50.6 L31.2,50.1 L31.6,49.7 L32.1,49.2 L32.6,48.8 L33.1,48.3 L33.6,47.9 L34.1,47.5 L34.6,47.0 L35.0,46.6 L35.5,46.1 L36.0,45.7 L36.5,45.2 L37.0,44.8 L37.4,44.3 L37.9,43.9 L38.3,43.4 L38.8,43.0 L39.2,42.5 L39.6,42.0 L40.0,41.5 L40.4,41.1 L40.7,40.6 L41.1,40.1 L41.4,39.6 L41.7,39.1 L42.0,38.6 L42.2,38.0 L42.5,37.5 L42.7,37.0 L42.9,36.4 L43.1,35.9 L43.2,35.3 L43.4,34.7 L43.5,34.2 L43.6,33.6 L43.7,33.0 L43.7,32.4 L43.7,31.8 L43.8,31.2 L43.8,30.5 L43.8,29.9 L43.7,29.3 L43.7,28.6 L43.6,28.0 L43.6,27.4 L43.5,26.7 L43.4,26.1 L43.3,25.4 L43.2,24.8 L43.1,24.1 L43.0,23.4 L42.9,22.8 L42.8,22.1 L42.6,21.5 L42.5,20.8 L42.4,20.1 L42.3,19.5 L42.2,18.8 L42.0,18.1 L41.9,17.5 L41.8,16.8 L41.7,16.1 L41.5,15.5 L41.3,14.8 L41.1,14.1 L40.9,13.4 L39.9,12.4 Z"/><path d="M37.7,14.1 L37.0,15.1 L36.3,16.2 L35.6,17.3 L35.0,18.4 L34.4,19.5 L33.8,20.7 L33.3,21.8 L32.7,22.9 L32.2,24.1 L31.7,25.2 L31.2,26.4 L30.7,27.5 L30.2,28.7 L29.7,29.8 L29.3,31.0 L28.8,32.2 L28.4,33.4 L28.0,34.5 L27.6,35.7 L27.2,36.9 L26.8,38.1 L26.4,39.3 L26.1,40.5 L25.8,41.7 L25.4,43.0 L25.1,44.2 L24.8,45.4 L24.6,46.6 L24.3,47.9 L24.1,49.1 L23.9,50.4 L23.7,51.7 L23.6,53.0"/><path d="M39.1,14.5 L38.7,15.7 L38.2,16.9 L37.8,18.1 L37.4,19.3 L36.9,20.4 L36.5,21.6 L36.1,22.8 L35.6,24.0 L35.2,25.2 L34.8,26.3 L34.4,27.5 L33.9,28.7 L33.5,29.9 L33.1,31.1 L32.6,32.2 L32.2,33.4 L31.8,34.6 L31.4,35.8 L30.9,36.9 L30.5,38.1 L30.1,39.3 L29.6,40.5 L29.2,41.7 L28.8,42.8 L28.4,44.0 L27.9,45.2 L27.5,46.4 L27.1,47.6 L26.6,48.7 L26.2,49.9 L25.8,51.1 L25.3,52.3 L24.9,53.5"/><path d="M40.4,15.0 L40.3,16.3 L40.1,17.6 L39.9,18.9 L39.7,20.1 L39.4,21.4 L39.2,22.6 L38.9,23.8 L38.6,25.0 L38.2,26.3 L37.9,27.5 L37.6,28.7 L37.2,29.9 L36.8,31.1 L36.4,32.3 L36.0,33.5 L35.6,34.6 L35.2,35.8 L34.7,37.0 L34.3,38.2 L33.8,39.3 L33.3,40.5 L32.8,41.6 L32.3,42.8 L31.8,43.9 L31.3,45.1 L30.7,46.2 L30.2,47.3 L29.6,48.5 L29.0,49.6 L28.4,50.7 L27.7,51.8 L27.0,52.9 L26.3,53.9"/>
+  <path d="M39.9,12.4 C40.9,8.4 40.4,5.9 38.4,3.9"/></g>
+ <g id="s-soup">
+  <path d="M13,40 C12,30.5 19.5,25.5 29,25.5 C37.5,25.5 44,30.5 44,38 C44,45.5 36.5,49.5 28,49.5 C19.5,49.5 14,45.5 13,40 Z"/>
+  <path d="M38.5,28 L44.5,22.5"/><path d="M43.5,31.5 L49,26"/>
+  <circle cx="49.5" cy="19" r="7"/>
+  <path d="M44.5,13 C45,9 48,8.5 49,11.5 C50,8 53,8 53.5,12"/>
+  <path d="M56,18.5 L62.5,20.5 L56,23"/>
+  <circle cx="51" cy="17" r="1.3" fill="currentColor" stroke="none"/>
+  <path d="M52.5,25.5 C54,27.5 53,29.5 51,29.5"/>
+  <path d="M22,35 C27.5,32 35,33 37.5,38.5 C34,42 26,42 22,38.5"/>
+  <path d="M13.5,31 C6,29 2.5,21.5 5,15 C8.5,21.5 12.5,24.5 16.5,25.5"/>
+  <path d="M13,37.5 C6.5,35 4,29 6,23.5"/>
+  <path d="M25,49.5 L25,57"/><path d="M20.5,57 L29.5,57"/>
+  <path d="M35,48.5 L35,56"/><path d="M30.5,56 L39.5,56"/></g>
+</defs></svg>
+
+<div class="stage">
+  <div class="card" id="card">
+
+    <!-- ================= TRACKING FACE ================= -->
+    <section class="face front">
+      <button class="bar" id="toTotals">
+        <span>Kerona on the go</span>
+        <span class="hint">Totals ▸</span>
+      </button>
+
+      <div class="grid" id="grid"></div>
+
+      <div class="basket empty" id="basket">
+        <div class="amt" id="basketAmt">Tap a drink to start</div>
+        <button class="undo" id="undoItem" disabled>Undo</button>
+      </div>
+
+      <div class="pay">
+        <button id="cash" disabled>CASH<span id="cashAmt"></span></button>
+        <button id="cardpay" disabled>CARD<span id="cardAmt"></span></button>
+
+        <div class="toast" id="toast">
+          <span id="toastMsg"></span>
+          <button id="undoSale">UNDO</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TOTALS FACE ================= -->
+    <section class="face back">
+      <button class="bar" id="toTill">
+        <span>Totals</span>
+        <span class="hint">◂ Back to till</span>
+      </button>
+
+      <div class="totals">
+        <div class="hero">
+          <div class="big" id="heroRand">R0</div>
+          <div class="sub" id="heroSub">0 cups · 0 sales</div>
+          <div class="scope">
+            <button id="scopeToday" class="on">Today</button>
+            <button id="scopeAll">Both days</button>
+          </div>
+        </div>
+
+        <h2>By product</h2>
+        <table><tbody id="byProduct"></tbody></table>
+
+        <h2>By payment</h2>
+        <table><tbody id="byPayment"></tbody></table>
+
+        <div class="acts">
+          <button id="copyBtn">Copy summary</button>
+          <button id="csvBtn" class="ghost">Download CSV</button>
+        </div>
+        <p class="note" id="foot"></p>
+        <button class="reset" id="resetLink">Reset local data</button>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---- configuration -------------------------------------------------------
+  const PRICE = 15;                    // R per cup, flat across all four products
+  const STORE = 'kerona-till-v1';
+  const PRODUCTS = [
+    { key:'cappuccino', label:'Cappuccino' },
+    { key:'tea',        label:'Tea' },
+    { key:'hotchoc',    label:'Hot Chocolate' },
+    { key:'soup',       label:'Soup' },
+  ];
+
+  // ---- state ---------------------------------------------------------------
+  let sales  = load();          // committed transactions
+  let basket = [];              // product keys in tap order (so "undo item" is exact)
+  let scope  = 'today';
+  let toastSaleId = null, toastTimer = null;
+
+  function load(){
+    try { return JSON.parse(localStorage.getItem(STORE)) || []; }
+    catch { return []; }
+  }
+  function save(){
+    try { localStorage.setItem(STORE, JSON.stringify(sales)); }
+    catch (e) { alert('Could not save to this device. Do not clear the browser data.'); }
+  }
+
+  const $ = id => document.getElementById(id);
+  const rand = n => 'R' + n.toLocaleString('en-ZA');
+  const dayOf = ts => { const d = new Date(ts);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+  const buzz = ms => { if (navigator.vibrate) navigator.vibrate(ms); };
+
+  // ---- product grid --------------------------------------------------------
+  const grid = $('grid');
+  PRODUCTS.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'prod'; b.dataset.key = p.key;
+    b.innerHTML = '<svg class="ico" viewBox="0 0 64 64"><use href="#s-' + p.key + '"/></svg>' +
+                  '<span>' + p.label + '</span><span class="n">0</span>';
+    b.addEventListener('click', () => {
+      // starting the next customer ends the undo window — and gets the strip out
+      // of the way of the basket counter it would otherwise cover
+      hideToast();
+      basket.push(p.key); buzz(12); renderTill();
+    });
+    grid.appendChild(b);
+  });
+
+  function renderTill(){
+    const counts = {};
+    basket.forEach(k => counts[k] = (counts[k]||0) + 1);
+
+    grid.querySelectorAll('.prod').forEach(b => {
+      const n = counts[b.dataset.key] || 0;
+      b.classList.toggle('has', n > 0);
+      b.querySelector('.n').textContent = n;
+    });
+
+    const qty = basket.length, amount = qty * PRICE;
+    const strip = $('basket');
+    strip.classList.toggle('empty', qty === 0);
+    $('basketAmt').innerHTML = qty === 0
+      ? 'Tap a drink to start'
+      : '<b>' + qty + '</b><i>' + (qty === 1 ? 'cup' : 'cups') + '</i><small>' + rand(amount) + '</small>';
+    $('undoItem').disabled = qty === 0;
+    $('cash').disabled = $('cardpay').disabled = qty === 0;
+    $('cashAmt').textContent = $('cardAmt').textContent = qty ? rand(amount) : '';
+  }
+
+  $('undoItem').addEventListener('click', () => { basket.pop(); buzz(20); renderTill(); });
+
+  // ---- submitting a sale ---------------------------------------------------
+  function submit(method){
+    if (!basket.length) return;
+    const items = {};
+    PRODUCTS.forEach(p => items[p.key] = 0);
+    basket.forEach(k => items[k]++);
+
+    const sale = {
+      id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
+      ts: Date.now(), items,
+      qty: basket.length, method, amount: basket.length * PRICE
+    };
+    sales.push(sale); save();
+    basket = []; renderTill();
+    buzz(method === 'cash' ? [18,50,18] : 30);
+    showToast(sale);
+  }
+  $('cash').addEventListener('click', () => submit('cash'));
+  $('cardpay').addEventListener('click', () => submit('card'));
+
+  function showToast(sale){
+    toastSaleId = sale.id;
+    $('toastMsg').textContent = 'Recorded · ' + rand(sale.amount) + ' ' + sale.method.toUpperCase();
+    $('toast').classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 4000);
+  }
+  function hideToast(){ $('toast').classList.remove('show'); toastSaleId = null; }
+
+  $('undoSale').addEventListener('click', () => {
+    if (!toastSaleId) return;
+    const i = sales.findIndex(s => s.id === toastSaleId);
+    if (i > -1) { sales.splice(i,1); save(); }
+    buzz([20,60,20]); hideToast(); renderTotals();
+  });
+
+  // ---- flip ----------------------------------------------------------------
+  // Only the header bar flips. The product grid must never flip by accident
+  // mid-service, so the tap target is the strip at the top, not the whole screen.
+  $('toTotals').addEventListener('click', () => {
+    hideToast(); renderTotals(); $('card').classList.add('flipped');
+  });
+  $('toTill').addEventListener('click', () => $('card').classList.remove('flipped'));
+
+  // ---- totals --------------------------------------------------------------
+  function inScope(){
+    if (scope === 'all') return sales;
+    const t = dayOf(Date.now());
+    return sales.filter(s => dayOf(s.ts) === t);
+  }
+
+  function summarise(list){
+    const out = {
+      qty:0, amount:0, sales:list.length,
+      byProduct:{}, byPayment:{ cash:{qty:0,amount:0}, card:{qty:0,amount:0} }
+    };
+    PRODUCTS.forEach(p => out.byProduct[p.key] = 0);
+    list.forEach(s => {
+      out.qty += s.qty; out.amount += s.amount;
+      PRODUCTS.forEach(p => out.byProduct[p.key] += (s.items[p.key] || 0));
+      const m = out.byPayment[s.method];
+      if (m) { m.qty += s.qty; m.amount += s.amount; }
+    });
+    return out;
+  }
+
+  function renderTotals(){
+    const t = summarise(inScope());
+    $('heroRand').textContent = rand(t.amount);
+    $('heroSub').textContent  = t.qty + ' cups · ' + t.sales + ' sales';
+    $('scopeToday').classList.toggle('on', scope === 'today');
+    $('scopeAll').classList.toggle('on', scope === 'all');
+
+    $('byProduct').innerHTML = PRODUCTS.map(p =>
+      '<tr><td>' + p.label + '</td><td class="q">' + t.byProduct[p.key] +
+      '</td><td class="r">' + rand(t.byProduct[p.key] * PRICE) + '</td></tr>').join('');
+
+    $('byPayment').innerHTML = ['cash','card'].map(m =>
+      '<tr><td>' + (m === 'cash' ? 'Cash' : 'Card') + '</td><td class="q">' + t.byPayment[m].qty +
+      '</td><td class="r">' + rand(t.byPayment[m].amount) + '</td></tr>').join('');
+
+    $('foot').textContent = 'R' + PRICE + ' per cup · ' + sales.length +
+      ' sales stored on this device' + (sales.length ? ' since ' + new Date(sales[0].ts).toLocaleString('en-ZA') : '');
+  }
+
+  $('scopeToday').addEventListener('click', () => { scope = 'today'; renderTotals(); });
+  $('scopeAll').addEventListener('click',   () => { scope = 'all';   renderTotals(); });
+
+  // ---- export --------------------------------------------------------------
+  function summaryText(){
+    const list = inScope(), t = summarise(list);
+    const when = scope === 'today'
+      ? new Date().toLocaleDateString('en-ZA', {weekday:'short', day:'numeric', month:'short', year:'numeric'})
+      : 'All days';
+    const lines = [
+      'KERONA · König point', when, '',
+      'Cups: ' + t.qty + '   Revenue: ' + rand(t.amount), ''
+    ];
+    PRODUCTS.forEach(p => lines.push(
+      p.label.padEnd(14) + String(t.byProduct[p.key]).padStart(4) + '   ' + rand(t.byProduct[p.key] * PRICE)));
+    lines.push('');
+    ['cash','card'].forEach(m => lines.push(
+      (m === 'cash' ? 'Cash' : 'Card').padEnd(14) + String(t.byPayment[m].qty).padStart(4) + '   ' + rand(t.byPayment[m].amount)));
+    lines.push('', 'Sales: ' + t.sales + ' · R' + PRICE + '/cup');
+    return lines.join('\n');
+  }
+
+  $('copyBtn').addEventListener('click', async () => {
+    const text = summaryText();
+    try {
+      await navigator.clipboard.writeText(text);
+      flash($('copyBtn'), 'Copied ✓');
+    } catch {
+      // Clipboard API needs a secure context; fall back to a manual select.
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;top:10%;left:5%;width:90%;height:60%;font-size:14px;z-index:99';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); flash($('copyBtn'), 'Copied ✓'); } catch {}
+      setTimeout(() => ta.remove(), 100);
+    }
+  });
+
+  $('csvBtn').addEventListener('click', () => {
+    const head = ['datetime','date','time', ...PRODUCTS.map(p => p.key), 'cups','method','amount_zar'];
+    const rows = inScope().map(s => {
+      const d = new Date(s.ts);
+      return [ d.toISOString(), dayOf(s.ts), d.toLocaleTimeString('en-ZA', {hour12:false}),
+               ...PRODUCTS.map(p => s.items[p.key] || 0), s.qty, s.method, s.amount ].join(',');
+    });
+    const blob = new Blob([[head.join(','), ...rows].join('\n')], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'kerona-konig-' + dayOf(Date.now()) + '.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    flash($('csvBtn'), 'Saved ✓');
+  });
+
+  // Reset is visible but deliberately not tappable: it needs a 3-second press and
+  // then a confirm. A stray tap on the totals screen must never wipe the day.
+  // Meant for clearing the practice run before trading, not for use during service.
+  (() => {
+    const link = $('resetLink');
+    const LABEL = 'Reset local data';
+    let timer = null;
+
+    const start = () => {
+      link.classList.add('holding');
+      link.textContent = 'Keep holding…';
+      timer = setTimeout(() => {
+        cancel();
+        buzz([40,60,40]);
+        if (confirm('Erase all ' + sales.length + ' stored sales from this device?\n\nThis cannot be undone. Export the CSV first.')) {
+          sales = []; save(); renderTotals();
+          flash(link, 'Data cleared');   // flash restores the label itself
+        }
+      }, 3000);
+    };
+    const cancel = () => {
+      clearTimeout(timer); timer = null;
+      link.classList.remove('holding');
+      link.textContent = LABEL;
+    };
+
+    link.addEventListener('pointerdown', start);
+    ['pointerup','pointercancel','pointerleave'].forEach(e => link.addEventListener(e, cancel));
+    link.addEventListener('contextmenu', e => e.preventDefault());
+  })();
+
+  function flash(btn, msg){
+    const old = btn.textContent; btn.textContent = msg;
+    setTimeout(() => btn.textContent = old, 1400);
+  }
+
+  // ---- keep the screen awake through a trading day -------------------------
+  let lock = null;
+  async function keepAwake(){
+    if (!('wakeLock' in navigator)) return;
+    try { lock = await navigator.wakeLock.request('screen'); } catch {}
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') keepAwake();
+  });
+  document.addEventListener('click', function once(){ keepAwake(); document.removeEventListener('click', once); });
+
+  // ---- offline ------------------------------------------------------------
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  renderTill(); renderTotals();
+})();
+</script>
+</body>
+</html>
