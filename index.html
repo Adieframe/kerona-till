@@ -145,9 +145,16 @@
     background:var(--ink); color:#fff; border-radius:14px; padding:12px 12px 12px 18px;
     display:flex; align-items:center; justify-content:space-between; gap:12px;
     font-weight:700; font-size:15px; box-shadow:0 8px 28px rgba(0,0,0,.32); z-index:5;
-    transform:translateY(150%); transition:transform .22s ease; pointer-events:none;
+    /* Hidden with visibility, not by sliding it off-screen: the strip is parked
+       above the home-indicator inset, so a translate alone leaves its top edge
+       showing. visibility flips only after the fade, so the motion still reads. */
+    transform:translateY(16px); opacity:0; visibility:hidden; pointer-events:none;
+    transition:transform .22s ease, opacity .18s ease, visibility 0s linear .18s;
   }
-  .toast.show{transform:translateY(0); pointer-events:auto;}
+  .toast.show{
+    transform:translateY(0); opacity:1; visibility:visible; pointer-events:auto;
+    transition:transform .22s ease, opacity .18s ease, visibility 0s;
+  }
   .toast button{
     background:#fff; color:var(--ink); border:0; border-radius:10px;
     padding:12px 18px; font-weight:800; font-size:15px;
@@ -361,6 +368,7 @@
 
   // ---- configuration -------------------------------------------------------
   const PRICE = 20;                    // R per cup, flat across products and payment methods
+  const BUILD = 'v12';                 // shown on the totals page — keep in step with CACHE in sw.js
   const PICKED = 'kerona-till-active'; // which till this device is
   const LEGACY = 'kerona-till-v1';     // single-till storage, before the König/Kerona split
 
@@ -561,8 +569,9 @@
       '<tr><td>' + (m === 'cash' ? 'Cash' : 'Card') + '</td><td class="q">' + t.byPayment[m].qty +
       '</td><td class="r">' + rand(t.byPayment[m].amount) + '</td></tr>').join('');
 
-    $('foot').textContent = till.name + ' till · R' + PRICE + ' per cup · ' + sales.length +
-      ' sales stored on this device' + (sales.length ? ' since ' + new Date(sales[0].ts).toLocaleString('en-ZA') : '');
+    $('foot').textContent = till.name + ' till · R' + PRICE + ' per cup · build ' + BUILD + ' · ' +
+      sales.length + ' sales stored on this device' +
+      (sales.length ? ' since ' + new Date(sales[0].ts).toLocaleString('en-ZA') : '');
   }
 
   $('scopeToday').addEventListener('click', () => { scope = 'today'; renderTotals(); });

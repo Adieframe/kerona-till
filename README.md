@@ -130,8 +130,10 @@ There is no logo in the header — just the wordmark.
   products fit the 2×2 grid and one gets a full-screen button; anything else needs
   a grid change.
 - Colours: the `--<product>` / `--<product>-edge` pairs at the top of the `<style>`.
-- After editing any file, bump `CACHE` in `sw.js` or installed devices keep serving
-  the old version.
+- After editing any file, bump **both** `CACHE` in `sw.js` and `BUILD` in
+  `index.html`, and keep them the same. `CACHE` is what makes installed devices
+  fetch the new files; `BUILD` is printed on the totals page so you can see at a
+  glance which version a phone is actually running.
 
 ## What has been tested
 
@@ -176,6 +178,8 @@ worth re-checking after any deploy that changes `sw.js`.
 | 2026-08-17 | Tea red and hot-chocolate blue resampled from Yana's packaging references; edge padding increased; header extended under the status bar; `dvh` ordering fixed so the pay buttons stop clipping |
 | 2026-08-17 | Confirmation strip moved back to the bottom of the screen; "Tap a drink to start" → "Tap a product" |
 | 2026-08-17 | **Second till added**: a chooser on first launch, a single-product Kerona till in brand navy with the pod mark, separate storage per till, and *Switch till* on the totals page |
+| 2026-08-17 | Build number shown on the totals page, so you can see which version a phone is running |
+| 2026-08-17 | Fixed the confirmation strip peeking above the bottom edge on iPhone — it is now hidden with `visibility`, not by sliding it off-screen |
 
 ## Next actions
 
