@@ -5,10 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, maximum-scale=1">
 <title>Kerona on the go</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#f6f1ea">
+<meta name="theme-color" content="#1b1512">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<!-- black-translucent lets the page paint under the status bar, so the header bar
+     runs to the very top of the screen instead of leaving a cream gap -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Kerona on the go">
 <link rel="apple-touch-icon" href="icon-180.png">
 <style>
@@ -17,15 +19,19 @@
   :root{
     --bg:#f6f1ea; --ink:#1b1512; --muted:#7a6a5d;
     --card:#ffffff; --line:#ddd0c1;
-    --amber:#c8761a; --cash:#1f7a4d; --card-pay:#1d5fa8;
-    --pad: 10px;
-    /* one colour per drink, so the tile is recognised by hue before the word is read */
+    --cash:#1f7a4d; --card-pay:#1d5fa8;
+    --pad: 14px;
+    /* One colour per drink, so the tile is recognised by hue before the word is
+       read. Tea and hot chocolate are sampled from the packaging Yana sent;
+       Kerona is the navy from the "Coffee here" banner. */
     --cappuccino:#d3ab7e; --cappuccino-edge:#b08a5d;
-    --tea:#b04a33;        --tea-edge:#8d3826;
-    --hotchoc:#4d3123;    --hotchoc-edge:#33200f;
+    --tea:#c42b38;        --tea-edge:#9a1f2a;
+    --hotchoc:#2b3f67;    --hotchoc-edge:#1b2a48;
     --soup:#e6b32a;       --soup-edge:#c1901a;
+    --kerona:#170833;     --kerona-edge:#33205c;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  [hidden]{display:none !important;}
   html,body{margin:0;height:100%;overflow:hidden;}
   body{
     background:var(--bg); color:var(--ink);
@@ -35,21 +41,26 @@
   }
   button{font:inherit; color:inherit; touch-action:manipulation; cursor:pointer;}
 
-  .stage{perspective:1800px; height:100dvh; height:100vh;}
+  /* dvh must come second — it has to win where it is supported, otherwise the
+     pay buttons sit under the home indicator and look clipped */
+  .stage{perspective:1800px; height:100vh; height:100dvh;}
   .card{position:relative;width:100%;height:100%;transform-style:preserve-3d;
         transition:transform .45s cubic-bezier(.2,.8,.2,1);}
   .card.flipped{transform:rotateY(180deg);}
+  /* no top inset here: the header paints its own, so the black runs edge to edge */
   .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
         display:flex;flex-direction:column;
-        padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+        padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
   .face.back{transform:rotateY(180deg);}
 
   /* ---- header (the flip target) ---- */
   .bar{
     flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
-    gap:8px; padding:14px 16px; background:var(--ink); color:#fff;
+    gap:8px; width:100%; text-align:left; border:0;
+    padding:16px var(--pad) 16px;
+    padding-top:calc(16px + env(safe-area-inset-top));
+    background:var(--ink); color:#fff;
     font-weight:700; letter-spacing:.04em; font-size:14px; text-transform:uppercase;
-    border:0; width:100%; text-align:left;
   }
   .bar .hint{font-size:13px; font-weight:600; opacity:.75; letter-spacing:.02em; text-transform:none;}
   .bar:active{background:#000;}
@@ -58,6 +69,36 @@
   .ico{fill:none; stroke:currentColor; stroke-width:2.5;
        stroke-linecap:round; stroke-linejoin:round; flex:0 0 auto;}
   .prod .ico{width:clamp(52px,19vw,88px); height:clamp(52px,19vw,88px); stroke-width:2.2;}
+
+  /* ---- product grid ---- */
+  .grid{
+    flex:1 1 auto; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
+    gap:var(--pad); padding:var(--pad); min-height:0;
+  }
+  .grid.single{grid-template-columns:1fr; grid-template-rows:1fr;}
+  .prod{
+    position:relative; border:3px solid; border-radius:16px;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:10px; padding:8px;
+    font-weight:800; font-size:clamp(17px,4.6vw,24px); line-height:1.1; text-align:center;
+    transition:transform .06s ease, filter .06s ease;
+  }
+  .prod:active{transform:scale(.97); filter:brightness(1.12);}
+  .prod[data-key="cappuccino"]{background:var(--cappuccino); border-color:var(--cappuccino-edge); color:#2b1c0e;}
+  .prod[data-key="tea"]       {background:var(--tea);        border-color:var(--tea-edge);        color:#fff;}
+  .prod[data-key="hotchoc"]   {background:var(--hotchoc);    border-color:var(--hotchoc-edge);    color:#fff;}
+  .prod[data-key="soup"]      {background:var(--soup);       border-color:var(--soup-edge);       color:#2b1c0e;}
+  .prod[data-key="kerona"]    {background:var(--kerona);     border-color:var(--kerona-edge);     color:#f6f1ea;}
+  .grid.single .ico{width:min(38vw,170px); height:min(38vw,170px);}
+  .grid.single .prod{font-size:clamp(22px,7vw,38px); gap:18px;}
+  /* white pill reads against all five tile colours */
+  .prod .n{
+    display:none; min-width:52px; padding:4px 12px; border-radius:99px;
+    background:#fff; color:var(--ink); font-size:26px; font-weight:800;
+    box-shadow:0 2px 6px rgba(0,0,0,.18);
+  }
+  .grid.single .prod .n{font-size:38px; min-width:76px; padding:6px 18px;}
+  .prod.has .n{display:block;}
 
   /* ---- basket strip (sits under the drinks, above the pay buttons) ---- */
   .basket{
@@ -78,36 +119,10 @@
   .undo:disabled{opacity:.3;}
   .undo:active:not(:disabled){background:#f0e7db;}
 
-  /* ---- product grid ---- */
-  .grid{
-    flex:1 1 auto; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr;
-    gap:var(--pad); padding:var(--pad); min-height:0;
-  }
-  .prod{
-    position:relative; border:3px solid; border-radius:16px;
-    display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:10px; padding:8px;
-    font-weight:800; font-size:clamp(17px,4.6vw,24px); line-height:1.1; text-align:center;
-    transition:transform .06s ease, filter .06s ease;
-  }
-  .prod:active{transform:scale(.97); filter:brightness(1.1);}
-  .prod[data-key="cappuccino"]{background:var(--cappuccino); border-color:var(--cappuccino-edge); color:#2b1c0e;}
-  .prod[data-key="tea"]       {background:var(--tea);        border-color:var(--tea-edge);        color:#fff;}
-  .prod[data-key="hotchoc"]   {background:var(--hotchoc);    border-color:var(--hotchoc-edge);    color:#fff;}
-  .prod[data-key="soup"]      {background:var(--soup);       border-color:var(--soup-edge);       color:#2b1c0e;}
-  /* white pill reads against all four tile colours */
-  .prod .n{
-    display:none; min-width:52px; padding:4px 12px; border-radius:99px;
-    background:#fff; color:var(--ink); font-size:26px; font-weight:800;
-    box-shadow:0 2px 6px rgba(0,0,0,.18);
-  }
-  .prod.has .n{display:block;}
-
   /* ---- pay buttons ---- */
   .pay{
-    position:relative;   /* anchors the toast directly above this row */
     flex:0 0 auto; display:grid; grid-template-columns:1fr 1fr; gap:var(--pad);
-    padding:0 var(--pad) calc(var(--pad) + 4px);
+    padding:0 var(--pad) calc(var(--pad) + 6px);
   }
   .pay button{
     border:0; border-radius:16px; color:#fff; padding:20px 8px;
@@ -121,27 +136,25 @@
   /* ID selectors above out-rank a plain `.pay button:disabled`, so match on ID here too. */
   #cash:disabled, #cardpay:disabled{background:#cfc4b6; color:#f6f1ea;}
 
-  /* ---- toast (undo last sale) ----
-     Sits above the pay row rather than over it, so CASH and CARD stay fully
-     visible while it is up. Fades rather than sliding, so it never lands on
-     top of the buttons on the way out. */
+  /* ---- confirmation / undo strip, at the bottom of the screen ----
+     It covers the pay buttons, which is fine: it clears itself after 4s and the
+     moment a drink is tapped for the next customer. */
   .toast{
-    /* left/right match .pay's own padding so the strip lines up with the buttons */
-    position:absolute; left:var(--pad); right:var(--pad); bottom:calc(100% + 8px);
-    background:var(--ink); color:#fff; border-radius:12px; padding:8px 8px 8px 16px;
+    position:absolute; left:var(--pad); right:var(--pad);
+    bottom:calc(var(--pad) + env(safe-area-inset-bottom));
+    background:var(--ink); color:#fff; border-radius:14px; padding:12px 12px 12px 18px;
     display:flex; align-items:center; justify-content:space-between; gap:12px;
-    font-weight:700; font-size:15px; box-shadow:0 6px 20px rgba(0,0,0,.28); z-index:5;
-    opacity:0; transform:translateY(8px); pointer-events:none;
-    transition:opacity .18s ease, transform .18s ease;
+    font-weight:700; font-size:15px; box-shadow:0 8px 28px rgba(0,0,0,.32); z-index:5;
+    transform:translateY(150%); transition:transform .22s ease; pointer-events:none;
   }
-  .toast.show{opacity:1; transform:translateY(0); pointer-events:auto;}
+  .toast.show{transform:translateY(0); pointer-events:auto;}
   .toast button{
-    background:#fff; color:var(--ink); border:0; border-radius:9px;
-    padding:10px 16px; font-weight:800; font-size:15px;
+    background:#fff; color:var(--ink); border:0; border-radius:10px;
+    padding:12px 18px; font-weight:800; font-size:15px;
   }
 
   /* ---- totals face ---- */
-  .totals{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 0 16px;}
+  .totals{flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:0 0 20px;}
   .hero{padding:20px 18px 16px; background:var(--card); border-bottom:2px solid var(--line);}
   .hero .big{font-size:44px; font-weight:800; letter-spacing:-.02em; line-height:1;}
   .hero .sub{margin-top:8px; color:var(--muted); font-weight:600; font-size:15px;}
@@ -173,12 +186,43 @@
     text-decoration:underline; text-underline-offset:3px; padding:8px 12px;
   }
   .reset.holding{color:#a32020; text-decoration:none; font-weight:800;}
+  .switch{
+    display:block; margin:6px auto 0; border:0; background:none;
+    color:var(--muted); font-size:13px; font-weight:600;
+    text-decoration:underline; text-underline-offset:3px; padding:8px 12px;
+  }
+
+  /* ---- till chooser ---- */
+  .chooser{
+    position:fixed; inset:0; z-index:20; background:var(--ink); color:#fff;
+    display:flex; flex-direction:column; gap:var(--pad);
+    padding:calc(24px + env(safe-area-inset-top)) var(--pad)
+            calc(20px + env(safe-area-inset-bottom));
+  }
+  .ch-top h1{margin:0 0 6px; font-size:22px; font-weight:800; letter-spacing:.03em; text-transform:uppercase;}
+  .ch-top p{margin:0; color:#c3b6a8; font-size:15px; font-weight:600;}
+  .ch-list{flex:1 1 auto; display:grid; grid-template-rows:1fr 1fr; gap:var(--pad); min-height:0;}
+  .ch{
+    border:3px solid; border-radius:18px; padding:20px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+    transition:transform .06s ease, filter .06s ease;
+  }
+  .ch:active{transform:scale(.98); filter:brightness(1.12);}
+  .ch[data-till="konig"]{background:var(--bg); border-color:var(--line); color:var(--ink);}
+  .ch[data-till="kerona"]{background:var(--kerona); border-color:var(--kerona-edge); color:#f6f1ea;}
+  .ch-icons{display:flex; gap:14px;}
+  .ch-icons .ico{width:38px; height:38px;}
+  .ch .ico.big{width:74px; height:74px;}
+  .ch-name{font-size:26px; font-weight:800;}
+  .ch-sub{font-size:13px; font-weight:600; opacity:.7; text-align:center;}
+  .ch-foot{margin:0; text-align:center; color:#8d8175; font-size:13px; font-weight:600;}
 </style>
 </head>
 <body>
 
 <!-- Kerona line-art icon set. Redrawn as SVG so it stays crisp at any size
-     and takes the tile colour via currentColor. -->
+     and takes the tile colour via currentColor. The pod is the real brand mark,
+     converted from the vector PDF (see ../brand/). -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
  <g id="s-cappuccino"><g transform="rotate(-28 32 32)">
   <ellipse cx="32" cy="32" rx="14.5" ry="21"/>
@@ -216,40 +260,69 @@
   <path d="M13,37.5 C6.5,35 4,29 6,23.5"/>
   <path d="M25,49.5 L25,57"/><path d="M20.5,57 L29.5,57"/>
   <path d="M35,48.5 L35,56"/><path d="M30.5,56 L39.5,56"/></g>
+ <g id="s-kerona" fill="currentColor" stroke="none" transform="translate(-93.796,-73.270) scale(0.61491) matrix(1,0,0,-1,0,425.1969)">
+  <path d="M193.79,234.40 C198.30,234.40 201.45,237.71 201.45,242.45 C201.45,248.87 194.69,255.40 188.05,255.40 C183.64,255.40 180.44,252.21 180.44,247.81 C180.44,241.04 187.06,234.40 193.79,234.40 Z Z M188.05,252.60 C193.20,252.60 198.65,247.39 198.65,242.45 C198.65,239.26 196.74,237.20 193.79,237.20 C188.57,237.20 183.24,242.56 183.24,247.81 C183.24,250.68 185.17,252.60 188.05,252.60 Z Z"/>
+  <path d="M178.60,259.61 C182.16,259.61 184.64,262.37 184.64,266.33 C184.64,270.95 180.89,275.01 176.60,275.01 C173.20,275.01 170.64,272.10 170.64,268.24 C170.64,263.56 174.28,259.61 178.60,259.61 Z Z M176.60,272.21 C179.39,272.21 181.84,269.46 181.84,266.33 C181.84,263.95 180.57,262.41 178.60,262.41 C175.85,262.41 173.44,265.13 173.44,268.24 C173.44,270.58 174.74,272.21 176.60,272.21 Z"/>
+  <path d="M213.60,220.39 C216.34,220.39 218.26,222.23 218.26,224.86 C218.26,228.93 213.64,234.40 208.92,234.40 C206.17,234.40 204.25,232.50 204.25,229.79 C204.25,225.40 209.23,220.39 213.60,220.39 Z Z M208.92,231.60 C211.95,231.60 215.45,227.52 215.45,224.86 C215.45,223.36 214.16,223.19 213.60,223.19 C210.72,223.19 207.05,226.89 207.05,229.79 C207.05,231.28 208.07,231.60 208.92,231.60 Z"/>
+  <path d="M213.60,214.79 C223.35,214.79 230.09,220.49 230.37,220.73 L232.03,222.15 L230.04,223.07 C230.00,223.09 225.07,225.42 222.54,230.49 C220.49,234.93 216.25,238.54 211.77,239.64 C209.23,240.37 207.32,242.60 206.73,245.58 C205.48,251.69 200.69,257.24 194.54,259.69 C191.93,260.74 190.25,263.21 190.25,265.99 C190.25,274.61 185.24,277.83 180.82,280.68 C178.63,282.08 176.57,283.41 175.36,285.27 L174.07,287.25 L172.95,285.17 C172.13,283.65 171.13,282.43 170.07,281.13 C167.60,278.09 165.04,274.95 165.04,268.24 C165.04,263.93 167.03,259.73 170.37,257.01 C173.21,254.69 174.84,251.44 174.84,248.07 C174.84,238.00 183.87,228.83 193.79,228.83 C196.35,228.64 198.72,226.94 199.88,224.38 C202.41,218.83 208.18,214.79 213.60,214.79 Z Z M226.89,221.67 C224.48,220.11 219.64,217.59 213.60,217.59 C209.30,217.59 204.49,221.01 202.43,225.54 C200.84,229.04 197.57,231.36 193.89,231.62 C185.49,231.63 177.64,239.62 177.64,248.07 C177.64,252.28 175.63,256.33 172.14,259.18 C169.44,261.38 167.84,264.76 167.84,268.24 C167.84,273.96 169.88,276.46 172.24,279.35 C172.95,280.22 173.67,281.10 174.34,282.08 C175.78,280.59 177.56,279.44 179.31,278.32 C183.49,275.63 187.45,273.08 187.45,265.99 C187.45,262.06 189.82,258.56 193.51,257.09 C198.72,255.01 202.94,250.15 203.99,245.02 C204.79,241.00 207.43,237.98 211.05,236.94 C214.73,236.03 218.32,232.96 220.02,229.27 C221.94,225.44 224.92,222.97 226.89,221.67 Z Z"/>
+  <path d="M223.86,233.00 C236.98,233.00 242.91,240.22 243.16,240.52 L244.11,241.72 L242.84,242.56 C239.08,245.07 237.13,250.30 237.11,250.36 C235.12,255.54 231.17,259.23 226.27,260.52 C224.69,260.93 223.39,262.07 222.77,263.57 C219.99,270.41 213.10,275.01 205.65,275.01 C204.04,275.01 202.59,275.77 201.59,277.14 C198.10,281.87 191.61,284.82 184.64,284.82 C181.41,284.82 178.68,284.32 176.02,283.25 L177.06,280.66 C179.38,281.58 181.78,282.02 184.64,282.02 C190.73,282.02 196.36,279.51 199.33,275.48 C200.88,273.37 203.12,272.21 205.65,272.21 C211.98,272.21 217.82,268.32 220.18,262.51 C221.12,260.20 223.13,258.45 225.56,257.81 C229.58,256.76 232.83,253.68 234.49,249.37 C234.56,249.17 236.33,244.41 239.96,241.25 C237.93,239.42 232.79,235.80 223.86,235.80 Z Z"/>
+  <path d="M173.05,283.68 L175.31,285.33 C173.76,287.46 173.44,291.74 173.44,293.21 L171.19,293.22 L170.64,293.22 C170.64,292.94 170.65,286.99 173.05,283.68 Z Z"/>
+ </g>
 </defs></svg>
 
-<div class="stage">
+<!-- ================= TILL CHOOSER ================= -->
+<section class="chooser" id="chooser" hidden>
+  <div class="ch-top">
+    <h1>Kerona on the go</h1>
+    <p>Which counter is this device on?</p>
+  </div>
+  <div class="ch-list">
+    <button class="ch" data-till="konig">
+      <span class="ch-icons" id="chKonigIcons"></span>
+      <span class="ch-name">König</span>
+      <span class="ch-sub">Cappuccino · Tea · Hot Chocolate · Soup</span>
+    </button>
+    <button class="ch" data-till="kerona">
+      <svg class="ico big" viewBox="0 0 64 64"><use href="#s-kerona"/></svg>
+      <span class="ch-name">Kerona</span>
+      <span class="ch-sub">Kerona superfood drink</span>
+    </button>
+  </div>
+  <p class="ch-foot">Each till keeps its own separate totals.</p>
+</section>
+
+<div class="stage" id="stage" hidden>
   <div class="card" id="card">
 
     <!-- ================= TRACKING FACE ================= -->
     <section class="face front">
       <button class="bar" id="toTotals">
-        <span>Kerona on the go</span>
+        <span id="tillName">Kerona on the go</span>
         <span class="hint">Totals ▸</span>
       </button>
 
       <div class="grid" id="grid"></div>
 
       <div class="basket empty" id="basket">
-        <div class="amt" id="basketAmt">Tap a drink to start</div>
+        <div class="amt" id="basketAmt">Tap a product</div>
         <button class="undo" id="undoItem" disabled>Undo</button>
       </div>
 
       <div class="pay">
         <button id="cash" disabled>CASH<span id="cashAmt"></span></button>
         <button id="cardpay" disabled>CARD<span id="cardAmt"></span></button>
+      </div>
 
-        <div class="toast" id="toast">
-          <span id="toastMsg"></span>
-          <button id="undoSale">UNDO</button>
-        </div>
+      <div class="toast" id="toast">
+        <span id="toastMsg"></span>
+        <button id="undoSale">UNDO</button>
       </div>
     </section>
 
     <!-- ================= TOTALS FACE ================= -->
     <section class="face back">
       <button class="bar" id="toTill">
-        <span>Totals</span>
+        <span id="totalsTitle">Totals</span>
         <span class="hint">◂ Back to till</span>
       </button>
 
@@ -274,6 +347,7 @@
           <button id="csvBtn" class="ghost">Download CSV</button>
         </div>
         <p class="note" id="foot"></p>
+        <button class="switch" id="switchTill">Switch till</button>
         <button class="reset" id="resetLink">Reset local data</button>
       </div>
     </section>
@@ -286,29 +360,31 @@
   'use strict';
 
   // ---- configuration -------------------------------------------------------
-  const PRICE = 15;                    // R per cup, flat across all four products
-  const STORE = 'kerona-till-v1';
-  const PRODUCTS = [
-    { key:'cappuccino', label:'Cappuccino' },
-    { key:'tea',        label:'Tea' },
-    { key:'hotchoc',    label:'Hot Chocolate' },
-    { key:'soup',       label:'Soup' },
-  ];
+  const PRICE = 20;                    // R per cup, flat across products and payment methods
+  const PICKED = 'kerona-till-active'; // which till this device is
+  const LEGACY = 'kerona-till-v1';     // single-till storage, before the König/Kerona split
+
+  const TILLS = {
+    konig: {
+      name: 'König', slug: 'konig', store: 'kerona-till-konig-v1',
+      products: [
+        { key:'cappuccino', label:'Cappuccino' },
+        { key:'tea',        label:'Tea' },
+        { key:'hotchoc',    label:'Hot Chocolate' },
+        { key:'soup',       label:'Soup' },
+      ]},
+    kerona: {
+      name: 'Kerona', slug: 'kerona', store: 'kerona-till-kerona-v1',
+      products: [
+        { key:'kerona',     label:'Kerona' },
+      ]},
+  };
 
   // ---- state ---------------------------------------------------------------
-  let sales  = load();          // committed transactions
+  let till = null, PRODUCTS = [], sales = [];
   let basket = [];              // product keys in tap order (so "undo item" is exact)
   let scope  = 'today';
   let toastSaleId = null, toastTimer = null;
-
-  function load(){
-    try { return JSON.parse(localStorage.getItem(STORE)) || []; }
-    catch { return []; }
-  }
-  function save(){
-    try { localStorage.setItem(STORE, JSON.stringify(sales)); }
-    catch (e) { alert('Could not save to this device. Do not clear the browser data.'); }
-  }
 
   const $ = id => document.getElementById(id);
   const rand = n => 'R' + n.toLocaleString('en-ZA');
@@ -316,37 +392,86 @@
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
   const buzz = ms => { if (navigator.vibrate) navigator.vibrate(ms); };
 
-  // ---- product grid --------------------------------------------------------
-  const grid = $('grid');
-  PRODUCTS.forEach(p => {
-    const b = document.createElement('button');
-    b.className = 'prod'; b.dataset.key = p.key;
-    b.innerHTML = '<svg class="ico" viewBox="0 0 64 64"><use href="#s-' + p.key + '"/></svg>' +
-                  '<span>' + p.label + '</span><span class="n">0</span>';
-    b.addEventListener('click', () => {
-      // starting the next customer ends the undo window — and gets the strip out
-      // of the way of the basket counter it would otherwise cover
-      hideToast();
-      basket.push(p.key); buzz(12); renderTill();
+  function load(){
+    try { return JSON.parse(localStorage.getItem(till.store)) || []; }
+    catch { return []; }
+  }
+  function save(){
+    try { localStorage.setItem(till.store, JSON.stringify(sales)); }
+    catch (e) { alert('Could not save to this device. Do not clear the browser data.'); }
+  }
+
+  // ---- choosing a till -----------------------------------------------------
+  function startTill(id){
+    till = TILLS[id]; PRODUCTS = till.products;
+
+    // carry over anything recorded before the two tills existed
+    if (id === 'konig' && !localStorage.getItem(till.store)) {
+      const old = localStorage.getItem(LEGACY);
+      if (old) { localStorage.setItem(till.store, old); localStorage.removeItem(LEGACY); }
+    }
+
+    sales = load(); basket = [];
+    localStorage.setItem(PICKED, id);
+    $('tillName').textContent = till.name + ' till';
+    $('totalsTitle').textContent = 'Totals · ' + till.name;
+
+    const grid = $('grid');
+    grid.innerHTML = '';
+    grid.classList.toggle('single', PRODUCTS.length === 1);
+    PRODUCTS.forEach(p => {
+      const b = document.createElement('button');
+      b.className = 'prod'; b.dataset.key = p.key;
+      b.innerHTML = '<svg class="ico" viewBox="0 0 64 64"><use href="#s-' + p.key + '"/></svg>' +
+                    '<span>' + p.label + '</span><span class="n">0</span>';
+      b.addEventListener('click', () => {
+        // starting the next customer ends the undo window
+        hideToast();
+        basket.push(p.key); buzz(12); renderTill();
+      });
+      grid.appendChild(b);
     });
-    grid.appendChild(b);
+
+    $('chooser').hidden = true;
+    $('stage').hidden = false;
+    $('card').classList.remove('flipped');
+    renderTill(); renderTotals();
+  }
+
+  function showChooser(){
+    $('stage').hidden = true;
+    $('chooser').hidden = false;
+  }
+
+  // small previews of the four drinks on the König card
+  $('chKonigIcons').innerHTML = TILLS.konig.products.map(p =>
+    '<svg class="ico" viewBox="0 0 64 64" style="color:var(--' + p.key + '-edge)"><use href="#s-' + p.key + '"/></svg>').join('');
+
+  document.querySelectorAll('.ch').forEach(b =>
+    b.addEventListener('click', () => startTill(b.dataset.till)));
+
+  $('switchTill').addEventListener('click', () => {
+    if (confirm('Switch this device to the other till?\n\nNothing is deleted — each till keeps its own totals.')) {
+      localStorage.removeItem(PICKED);
+      showChooser();
+    }
   });
 
+  // ---- till rendering ------------------------------------------------------
   function renderTill(){
     const counts = {};
     basket.forEach(k => counts[k] = (counts[k]||0) + 1);
 
-    grid.querySelectorAll('.prod').forEach(b => {
+    $('grid').querySelectorAll('.prod').forEach(b => {
       const n = counts[b.dataset.key] || 0;
       b.classList.toggle('has', n > 0);
       b.querySelector('.n').textContent = n;
     });
 
     const qty = basket.length, amount = qty * PRICE;
-    const strip = $('basket');
-    strip.classList.toggle('empty', qty === 0);
+    $('basket').classList.toggle('empty', qty === 0);
     $('basketAmt').innerHTML = qty === 0
-      ? 'Tap a drink to start'
+      ? 'Tap a product'
       : '<b>' + qty + '</b><i>' + (qty === 1 ? 'cup' : 'cups') + '</i><small>' + rand(amount) + '</small>';
     $('undoItem').disabled = qty === 0;
     $('cash').disabled = $('cardpay').disabled = qty === 0;
@@ -436,7 +561,7 @@
       '<tr><td>' + (m === 'cash' ? 'Cash' : 'Card') + '</td><td class="q">' + t.byPayment[m].qty +
       '</td><td class="r">' + rand(t.byPayment[m].amount) + '</td></tr>').join('');
 
-    $('foot').textContent = 'R' + PRICE + ' per cup · ' + sales.length +
+    $('foot').textContent = till.name + ' till · R' + PRICE + ' per cup · ' + sales.length +
       ' sales stored on this device' + (sales.length ? ' since ' + new Date(sales[0].ts).toLocaleString('en-ZA') : '');
   }
 
@@ -450,7 +575,7 @@
       ? new Date().toLocaleDateString('en-ZA', {weekday:'short', day:'numeric', month:'short', year:'numeric'})
       : 'All days';
     const lines = [
-      'KERONA · König point', when, '',
+      'KERONA · ' + till.name + ' till', when, '',
       'Cups: ' + t.qty + '   Revenue: ' + rand(t.amount), ''
     ];
     PRODUCTS.forEach(p => lines.push(
@@ -478,16 +603,16 @@
   });
 
   $('csvBtn').addEventListener('click', () => {
-    const head = ['datetime','date','time', ...PRODUCTS.map(p => p.key), 'cups','method','amount_zar'];
+    const head = ['datetime','date','time','till', ...PRODUCTS.map(p => p.key), 'cups','method','amount_zar'];
     const rows = inScope().map(s => {
       const d = new Date(s.ts);
-      return [ d.toISOString(), dayOf(s.ts), d.toLocaleTimeString('en-ZA', {hour12:false}),
+      return [ d.toISOString(), dayOf(s.ts), d.toLocaleTimeString('en-ZA', {hour12:false}), till.name,
                ...PRODUCTS.map(p => s.items[p.key] || 0), s.qty, s.method, s.amount ].join(',');
     });
     const blob = new Blob([[head.join(','), ...rows].join('\n')], {type:'text/csv'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'kerona-konig-' + dayOf(Date.now()) + '.csv';
+    a.download = 'kerona-' + till.slug + '-' + dayOf(Date.now()) + '.csv';
     document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
     flash($('csvBtn'), 'Saved ✓');
@@ -507,7 +632,8 @@
       timer = setTimeout(() => {
         cancel();
         buzz([40,60,40]);
-        if (confirm('Erase all ' + sales.length + ' stored sales from this device?\n\nThis cannot be undone. Export the CSV first.')) {
+        if (confirm('Erase all ' + sales.length + ' stored sales from the ' + till.name +
+                    ' till on this device?\n\nThis cannot be undone. Export the CSV first.')) {
           sales = []; save(); renderTotals();
           flash(link, 'Data cleared');   // flash restores the label itself
         }
@@ -545,7 +671,9 @@
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
-  renderTill(); renderTotals();
+  // ---- boot ----------------------------------------------------------------
+  const picked = localStorage.getItem(PICKED);
+  if (picked && TILLS[picked]) startTill(picked); else showChooser();
 })();
 </script>
 </body>
