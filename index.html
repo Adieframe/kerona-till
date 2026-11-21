@@ -34,6 +34,8 @@
        CASH button sitting right under it. Berry — the jam colour — is the one
        warm gap left, and it clashes with nothing on either till. */
     --scones:#7d3557;     --scones-edge:#5c2440;
+    /* Box orders till: powder keeps the Kerona navy, sachets take brand orange. */
+    --sachets:#D6701A;    --sachets-edge:#a8540f;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   [hidden]{display:none !important;}
@@ -101,6 +103,24 @@
   .prod[data-key="soup"]      {background:var(--soup);       border-color:var(--soup-edge);       color:#2b1c0e;}
   .prod[data-key="kerona"]    {background:var(--kerona);     border-color:var(--kerona-edge);     color:#f6f1ea;}
   .prod[data-key="scones"]    {background:var(--scones);     border-color:var(--scones-edge);     color:#fff;}
+  /* Box orders till: 2 products × 3 order sizes. Columns are the products,
+     rows the sizes, so the column colour says which product. */
+  .grid.six{grid-template-columns:1fr 1fr; grid-template-rows:repeat(3,1fr); grid-auto-flow:column; gap:10px;}
+  .prod[data-line="powder"] {background:var(--kerona);  border-color:var(--kerona-edge);  color:#f6f1ea;}
+  .prod[data-line="sachets"]{background:var(--sachets); border-color:var(--sachets-edge); color:#1b1512;}
+  .grid.six .prod{gap:4px; padding:6px;}
+  /* Product names sit once above each column, like table headers, instead of
+     being repeated small on every tile. */
+  .cols{flex:0 0 auto; display:grid; grid-template-columns:1fr 1fr; gap:10px;
+        padding:var(--pad) var(--pad) 0; text-align:center;
+        font-size:clamp(18px,5vw,22px); font-weight:800;}
+  .cols span{padding-bottom:6px; border-bottom:4px solid;}
+  .cols .c-powder{color:var(--kerona); border-color:var(--kerona);}
+  .cols .c-sachets{color:var(--sachets-edge); border-color:var(--sachets);}
+  .cols + .grid{padding-top:10px;}
+  .prod .opt{font-size:clamp(18px,5vw,24px); font-weight:800;}
+  .prod .pr{font-size:15px; font-weight:700; opacity:.9;}
+  .grid.six .prod .n{font-size:18px; min-width:40px; padding:2px 10px;}
   .grid.single .ico{width:min(38vw,170px); height:min(38vw,170px);}
   .grid.single .prod{font-size:clamp(22px,7vw,38px); gap:18px;}
   .grid.two .ico{width:min(20vw,96px); height:min(20vw,96px);}
@@ -228,7 +248,7 @@
   }
   .ch-top h1{margin:0 0 6px; font-size:22px; font-weight:800; letter-spacing:.03em; text-transform:uppercase;}
   .ch-top p{margin:0; color:#c3b6a8; font-size:15px; font-weight:600;}
-  .ch-list{flex:1 1 auto; display:grid; grid-template-rows:1fr 1fr; gap:var(--pad); min-height:0;}
+  .ch-list{flex:1 1 auto; display:grid; grid-template-rows:repeat(3,1fr); gap:var(--pad); min-height:0;}
   .ch{
     border:3px solid; border-radius:18px; padding:20px;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
@@ -237,12 +257,43 @@
   .ch:active{transform:scale(.98); filter:brightness(1.12);}
   .ch[data-till="konig"]{background:var(--bg); border-color:var(--line); color:var(--ink);}
   .ch[data-till="kerona"]{background:var(--kerona); border-color:var(--kerona-edge); color:#f6f1ea;}
+  .ch[data-till="boxes"]{background:var(--sachets); border-color:var(--sachets-edge); color:#1b1512;}
   .ch-icons{display:flex; gap:14px;}
   .ch-icons .ico{width:38px; height:38px;}
   .ch .ico.big{width:74px; height:74px;}
   .ch-name{font-size:26px; font-weight:800;}
   .ch-sub{font-size:13px; font-weight:600; opacity:.7; text-align:center;}
   .ch-foot{margin:0; text-align:center; color:#8d8175; font-size:13px; font-weight:600;}
+
+  /* ---- buyer details form (Box orders till) ---- */
+  .sheet{position:fixed; inset:0; z-index:30; background:rgba(27,21,18,.55);
+         display:flex; align-items:flex-end; justify-content:center;}
+  .sheet-in{width:100%; max-width:560px; max-height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch;
+            margin:0; background:var(--bg); border-radius:18px 18px 0 0;
+            padding:18px var(--pad) calc(18px + env(safe-area-inset-bottom));
+            user-select:text; -webkit-user-select:text;}
+  .sheet h3{margin:0 0 4px; font-size:20px; font-weight:800;}
+  .sheet .sum{margin:0 0 14px; color:var(--muted); font-weight:600; font-size:14px; line-height:1.45;}
+  .seg{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;}
+  .seg button{border:2px solid var(--line); background:#fff; border-radius:10px; padding:12px;
+              font-weight:700; font-size:15px; color:var(--muted);}
+  .seg button.on{background:var(--ink); border-color:var(--ink); color:#fff;}
+  .fld{display:block; margin-bottom:12px;}
+  .fld span{display:block; font-size:13px; font-weight:700; color:var(--muted); margin-bottom:5px;}
+  /* 17px keeps iOS from zooming into the field on focus */
+  .fld input,.fld textarea{width:100%; font:inherit; font-size:17px; padding:12px;
+              border:2px solid var(--line); border-radius:10px; background:#fff; color:var(--ink);}
+  .fld textarea{min-height:84px; resize:vertical;}
+  .fld.bad input,.fld.bad textarea{border-color:#a32020;}
+  .err{color:#a32020; font-weight:700; font-size:14px; margin:0 0 10px;}
+  .sheet-acts{display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-top:6px;}
+  .sheet-acts button{border:2px solid var(--ink); border-radius:12px; padding:16px 8px; font-weight:800; font-size:16px;}
+  #formBack{background:#fff; color:var(--ink);}
+  #formSave{color:#fff; border:0;}
+
+  /* ---- orders list on the totals page ---- */
+  td.who{font-size:16px; font-weight:700; user-select:text; -webkit-user-select:text;}
+  td.who small, td.r small{display:block; margin-top:3px; color:var(--muted); font-size:13px; font-weight:600;}
 </style>
 </head>
 <body>
@@ -310,9 +361,14 @@
 <section class="chooser" id="chooser" hidden>
   <div class="ch-top">
     <h1>Kerona on the go</h1>
-    <p>Which counter is this device on?</p>
+    <p>Which till should this device show?</p>
   </div>
   <div class="ch-list">
+    <button class="ch" data-till="boxes">
+      <svg class="ico big" viewBox="0 0 64 64"><use href="#s-kerona"/></svg>
+      <span class="ch-name">Box orders</span>
+      <span class="ch-sub">226 g powder · 20-sachet box — single, box of 20, 5 boxes</span>
+    </button>
     <button class="ch" data-till="konig">
       <span class="ch-icons" id="chKonigIcons"></span>
       <span class="ch-name">König</span>
@@ -324,7 +380,7 @@
       <span class="ch-sub">Kerona superfood drink · Scones</span>
     </button>
   </div>
-  <p class="ch-foot">Each till keeps its own separate totals.</p>
+  <p class="ch-foot">Each till keeps its own separate totals. The app always opens on Box orders.</p>
 </section>
 
 <div class="stage" id="stage" hidden>
@@ -337,6 +393,10 @@
         <span class="hint">Totals ▸</span>
       </button>
 
+      <div class="cols" id="cols" hidden>
+        <span class="c-powder">226 g powder</span>
+        <span class="c-sachets">20-sachet box</span>
+      </div>
       <div class="grid" id="grid"></div>
 
       <div class="basket empty" id="basket">
@@ -378,6 +438,11 @@
         <h2>By payment</h2>
         <table><tbody id="byPayment"></tbody></table>
 
+        <div id="ordersBox" hidden>
+          <h2>Orders</h2>
+          <table><tbody id="orderList"></tbody></table>
+        </div>
+
         <div class="acts">
           <button id="copyBtn">Copy summary</button>
           <button id="csvBtn" class="ghost">Download CSV</button>
@@ -391,17 +456,55 @@
   </div>
 </div>
 
+<!-- ================= BUYER DETAILS (Box orders till) =================
+     Outside the stage on purpose: the stage uses 3D transforms, and a fixed
+     element inside a transformed parent stops being fixed to the screen. -->
+<section class="sheet" id="sheet" hidden>
+  <form class="sheet-in" id="orderForm" novalidate>
+    <h3>Buyer details</h3>
+    <p class="sum" id="formSum"></p>
+    <div class="seg">
+      <button type="button" id="modeDelivery" class="on">Delivery</button>
+      <button type="button" id="modeCollect">Collecting</button>
+    </div>
+    <label class="fld"><span>Name</span><input id="buyerName" autocomplete="off" autocapitalize="words"></label>
+    <label class="fld"><span>Phone</span><input id="buyerPhone" type="tel" inputmode="tel" autocomplete="off"></label>
+    <label class="fld"><span id="addrLabel">Delivery address</span><textarea id="buyerAddr" autocomplete="off"></textarea></label>
+    <p class="err" id="formErr" hidden>Fill in name, phone and address.</p>
+    <div class="sheet-acts">
+      <button type="button" id="formBack">Back</button>
+      <button type="submit" id="formSave">Save order</button>
+    </div>
+  </form>
+</section>
+
 <script>
 (() => {
   'use strict';
 
   // ---- configuration -------------------------------------------------------
-  const PRICE = 20;                    // R per item, flat across products and payment methods
-  const BUILD = 'v14';                 // shown on the totals page — keep in step with CACHE in sw.js
-  const PICKED = 'kerona-till-active'; // which till this device is
+  const PRICE = 20;                    // R per item on the König and Kerona tills, flat across products and payment methods
+  const BUILD = 'v15';                 // shown on the totals page — keep in step with CACHE in sw.js
+  const PICKED = 'kerona-till-active'; // which till a device used to remember (pre-v15); cleared on boot
   const LEGACY = 'kerona-till-v1';     // single-till storage, before the König/Kerona split
+  const DEFAULT_TILL = 'boxes';        // every launch opens here; the others only via Switch till
+
+  // Box orders: each tap is one order option. `units` is product units in that
+  // option, `price` the rand for the whole option (reseller pricing, 2026-11).
+  const box = (line, lineLabel, key, label, units, price) => ({ key, line, lineLabel, label, units, price });
 
   const TILLS = {
+    boxes: {
+      name: 'Box orders', slug: 'boxes', store: 'kerona-till-boxes-v1', unit: 'unit', orders: true,
+      // listed column by column: the grid fills powder first, then sachets
+      products: [
+        box('powder',  '226 g powder',  'powder1',   'Single',        1,   170),
+        box('powder',  '226 g powder',  'powder20',  'Box · 20',     20,  3000),
+        box('powder',  '226 g powder',  'powder100', '5 boxes · 100', 100, 14000),
+        box('sachets', '20-sachet box', 'sachets1',  'Single',        1,   140),
+        box('sachets', '20-sachet box', 'sachets20', 'Box · 20',     20,  2500),
+        box('sachets', '20-sachet box', 'sachets100','5 boxes · 100', 100, 11500),
+      ]},
     konig: {
       name: 'König', slug: 'konig', store: 'kerona-till-konig-v1',
       products: [
@@ -430,6 +533,16 @@
   const dayOf = ts => { const d = new Date(ts);
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
   const buzz = ms => { if (navigator.vibrate) navigator.vibrate(ms); };
+  const priceOf = p => p.price ?? PRICE;
+  const unitsOf = p => p.units ?? 1;
+  const fullName = p => p.lineLabel ? p.lineLabel + ' · ' + p.label : p.label;
+  const byKey = k => PRODUCTS.find(p => p.key === k);
+  const unitWord = n => (till.unit || 'item') + (n === 1 ? '' : 's');
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const csvCell = v => { v = String(v); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  // "2 × 226 g powder · Box · 20, 1 × 20-sachet box · Single"
+  const orderLines = s => PRODUCTS.filter(p => s.items[p.key])
+    .map(p => s.items[p.key] + ' × ' + fullName(p)).join(', ');
 
   function load(){
     try { return JSON.parse(localStorage.getItem(till.store)) || []; }
@@ -451,21 +564,30 @@
     }
 
     sales = load(); basket = [];
-    localStorage.setItem(PICKED, id);
-    $('tillName').textContent = till.name + ' till';
+    $('tillName').textContent = till.name + (till.orders ? '' : ' till');
     $('totalsTitle').textContent = 'Totals · ' + till.name;
+    $('scopeAll').textContent = till.orders ? 'All days' : 'Both days';
+    $('ordersBox').hidden = !till.orders;
+    $('cols').hidden = !till.orders;
 
     const grid = $('grid');
     grid.innerHTML = '';
     // The grid shape is driven by how many products the till sells: one gets a
-    // full-screen button, two stack full width, five is the 2×2 plus a wide fifth.
-    const shape = {1:'single', 2:'two', 5:'five'}[PRODUCTS.length];
+    // full-screen button, two stack full width, five is the 2×2 plus a wide fifth,
+    // six is Box orders — two product columns of three order sizes.
+    const shape = {1:'single', 2:'two', 5:'five', 6:'six'}[PRODUCTS.length];
     grid.className = shape ? 'grid ' + shape : 'grid';
     PRODUCTS.forEach(p => {
       const b = document.createElement('button');
       b.className = 'prod'; b.dataset.key = p.key;
-      b.innerHTML = '<svg class="ico" viewBox="0 0 64 64"><use href="#s-' + p.key + '"/></svg>' +
-                    '<span>' + p.label + '</span><span class="n">0</span>';
+      if (p.line) {
+        b.dataset.line = p.line;
+        b.innerHTML = '<span class="opt">' + p.label +
+                      '</span><span class="pr">' + rand(p.price) + '</span><span class="n">0</span>';
+      } else {
+        b.innerHTML = '<svg class="ico" viewBox="0 0 64 64"><use href="#s-' + p.key + '"/></svg>' +
+                      '<span>' + p.label + '</span><span class="n">0</span>';
+      }
       b.addEventListener('click', () => {
         // starting the next customer ends the undo window
         hideToast();
@@ -493,8 +615,8 @@
     b.addEventListener('click', () => startTill(b.dataset.till)));
 
   $('switchTill').addEventListener('click', () => {
-    if (confirm('Switch this device to the other till?\n\nNothing is deleted — each till keeps its own totals.')) {
-      localStorage.removeItem(PICKED);
+    if (confirm('Switch to another till?\n\nNothing is deleted — each till keeps its own totals. ' +
+                'The app opens on Box orders again next time it is launched.')) {
       showChooser();
     }
   });
@@ -510,11 +632,11 @@
       b.querySelector('.n').textContent = n;
     });
 
-    const qty = basket.length, amount = qty * PRICE;
+    const qty = basketUnits(), amount = basketAmount();
     $('basket').classList.toggle('empty', qty === 0);
     $('basketAmt').innerHTML = qty === 0
-      ? 'Tap a product'
-      : '<b>' + qty + '</b><i>' + (qty === 1 ? 'item' : 'items') + '</i><small>' + rand(amount) + '</small>';
+      ? (till.orders ? 'Tap an order size' : 'Tap a product')
+      : '<b>' + qty + '</b><i>' + unitWord(qty) + '</i><small>' + rand(amount) + '</small>';
     $('undoItem').disabled = qty === 0;
     $('cash').disabled = $('cardpay').disabled = qty === 0;
     $('cashAmt').textContent = $('cardAmt').textContent = qty ? rand(amount) : '';
@@ -522,9 +644,18 @@
 
   $('undoItem').addEventListener('click', () => { basket.pop(); buzz(20); renderTill(); });
 
+  function basketUnits(){ return basket.reduce((n,k) => n + unitsOf(byKey(k)), 0); }
+  function basketAmount(){ return basket.reduce((n,k) => n + priceOf(byKey(k)), 0); }
+
   // ---- submitting a sale ---------------------------------------------------
+  // On Box orders, CASH / CARD confirms the order and opens the buyer form;
+  // the sale is only recorded once the form is saved.
   function submit(method){
     if (!basket.length) return;
+    if (till.orders) openForm(method); else record(method, null);
+  }
+
+  function record(method, buyer){
     const items = {};
     PRODUCTS.forEach(p => items[p.key] = 0);
     basket.forEach(k => items[k]++);
@@ -532,19 +663,66 @@
     const sale = {
       id: Date.now() + '-' + Math.random().toString(36).slice(2,7),
       ts: Date.now(), items,
-      qty: basket.length, method, amount: basket.length * PRICE
+      qty: basketUnits(), method, amount: basketAmount()
     };
+    if (buyer) sale.buyer = buyer;
     sales.push(sale); save();
     basket = []; renderTill();
     buzz(method === 'cash' ? [18,50,18] : 30);
     showToast(sale);
   }
+
+  // ---- buyer details form (Box orders) -------------------------------------
+  let pendingMethod = null, mode = 'delivery';
+  const fields = ['buyerName','buyerPhone','buyerAddr'];
+
+  function setMode(m){
+    mode = m;
+    $('modeDelivery').classList.toggle('on', m === 'delivery');
+    $('modeCollect').classList.toggle('on', m === 'collect');
+    $('addrLabel').textContent = m === 'collect' ? 'Collecting from' : 'Delivery address';
+  }
+  function openForm(method){
+    pendingMethod = method;
+    setMode('delivery');
+    fields.forEach(f => { $(f).value = ''; $(f).parentNode.classList.remove('bad'); });
+    $('formErr').hidden = true;
+    const s = { items:{} }; basket.forEach(k => s.items[k] = (s.items[k]||0) + 1);
+    $('formSum').textContent = orderLines(s) + ' — ' + basketUnits() + ' ' + unitWord(basketUnits()) +
+                               ' · ' + rand(basketAmount()) + ' ' + method.toUpperCase();
+    $('formSave').style.background = method === 'cash' ? 'var(--cash)' : 'var(--card-pay)';
+    $('formSave').textContent = 'Save order · ' + method.toUpperCase();
+    hideToast();
+    $('sheet').hidden = false;
+  }
+  function closeForm(){
+    if (document.activeElement) document.activeElement.blur();
+    $('sheet').hidden = true; pendingMethod = null;
+  }
+  $('modeDelivery').addEventListener('click', () => setMode('delivery'));
+  $('modeCollect').addEventListener('click',  () => setMode('collect'));
+  // Back keeps the basket, so a wrong tap can be fixed and the order confirmed again.
+  $('formBack').addEventListener('click', closeForm);
+  $('orderForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const v = {}; let ok = true;
+    fields.forEach(f => {
+      v[f] = $(f).value.trim();
+      $(f).parentNode.classList.toggle('bad', !v[f]);
+      if (!v[f]) ok = false;
+    });
+    if (!ok) { $('formErr').hidden = false; buzz([20,60,20]); return; }
+    const method = pendingMethod;
+    closeForm();
+    record(method, { name:v.buyerName, phone:v.buyerPhone, address:v.buyerAddr, mode });
+  });
   $('cash').addEventListener('click', () => submit('cash'));
   $('cardpay').addEventListener('click', () => submit('card'));
 
   function showToast(sale){
     toastSaleId = sale.id;
-    $('toastMsg').textContent = 'Recorded · ' + rand(sale.amount) + ' ' + sale.method.toUpperCase();
+    $('toastMsg').textContent = (sale.buyer ? 'Order saved · ' : 'Recorded · ') +
+                                rand(sale.amount) + ' ' + sale.method.toUpperCase();
     $('toast').classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(hideToast, 4000);
@@ -591,20 +769,36 @@
   function renderTotals(){
     const t = summarise(inScope());
     $('heroRand').textContent = rand(t.amount);
-    $('heroSub').textContent  = t.qty + ' items · ' + t.sales + ' sales';
+    $('heroSub').textContent  = t.qty + ' ' + unitWord(t.qty) + ' · ' + t.sales + ' ' + (till.orders ? 'order' : 'sale') + (t.sales === 1 ? '' : 's');
     $('scopeToday').classList.toggle('on', scope === 'today');
     $('scopeAll').classList.toggle('on', scope === 'all');
 
+    // Box orders shows how many times each option was ordered; the rand column
+    // is the option price × that count.
     $('byProduct').innerHTML = PRODUCTS.map(p =>
-      '<tr><td>' + p.label + '</td><td class="q">' + t.byProduct[p.key] +
-      '</td><td class="r">' + rand(t.byProduct[p.key] * PRICE) + '</td></tr>').join('');
+      '<tr><td>' + fullName(p) + '</td><td class="q">' + t.byProduct[p.key] +
+      '</td><td class="r">' + rand(t.byProduct[p.key] * priceOf(p)) + '</td></tr>').join('');
 
     $('byPayment').innerHTML = ['cash','card'].map(m =>
       '<tr><td>' + (m === 'cash' ? 'Cash' : 'Card') + '</td><td class="q">' + t.byPayment[m].qty +
       '</td><td class="r">' + rand(t.byPayment[m].amount) + '</td></tr>').join('');
 
-    $('foot').textContent = till.name + ' till · R' + PRICE + ' per item · build ' + BUILD + ' · ' +
-      sales.length + ' sales stored on this device' +
+    if (till.orders) {
+      const list = inScope().slice().reverse();   // newest first
+      $('orderList').innerHTML = list.length ? list.map(s => {
+        const b = s.buyer || {};
+        return '<tr><td class="who">' + esc(b.name || '—') +
+          '<small>' + esc(b.phone || '') + '</small>' +
+          '<small>' + (b.mode === 'collect' ? 'Collecting from: ' : 'Deliver to: ') + esc(b.address || '') + '</small>' +
+          '<small>' + esc(orderLines(s)) + '</small></td>' +
+          '<td class="r">' + rand(s.amount) + '<small>' + s.method + ' · ' +
+          new Date(s.ts).toLocaleTimeString('en-ZA', {hour:'2-digit', minute:'2-digit'}) + '</small></td></tr>';
+      }).join('') : '<tr><td class="who"><small>No orders yet.</small></td></tr>';
+    }
+
+    $('foot').textContent = till.name + ' till' + (till.orders ? '' : ' · R' + PRICE + ' per item') +
+      ' · build ' + BUILD + ' · ' +
+      sales.length + (till.orders ? ' orders' : ' sales') + ' stored on this device' +
       (sales.length ? ' since ' + new Date(sales[0].ts).toLocaleString('en-ZA') : '');
   }
 
@@ -618,15 +812,26 @@
       ? new Date().toLocaleDateString('en-ZA', {weekday:'short', day:'numeric', month:'short', year:'numeric'})
       : 'All days';
     const lines = [
-      'KERONA · ' + till.name + ' till', when, '',
-      'Items: ' + t.qty + '   Revenue: ' + rand(t.amount), ''
+      'KERONA · ' + till.name + (till.orders ? '' : ' till'), when, '',
+      (till.orders ? 'Units: ' : 'Items: ') + t.qty + '   Revenue: ' + rand(t.amount), ''
     ];
-    PRODUCTS.forEach(p => lines.push(
-      p.label.padEnd(14) + String(t.byProduct[p.key]).padStart(4) + '   ' + rand(t.byProduct[p.key] * PRICE)));
+    PRODUCTS.forEach(p => lines.push(till.orders
+      ? fullName(p) + ': ' + t.byProduct[p.key] + '   ' + rand(t.byProduct[p.key] * priceOf(p))
+      : p.label.padEnd(14) + String(t.byProduct[p.key]).padStart(4) + '   ' + rand(t.byProduct[p.key] * PRICE)));
     lines.push('');
     ['cash','card'].forEach(m => lines.push(
       (m === 'cash' ? 'Cash' : 'Card').padEnd(14) + String(t.byPayment[m].qty).padStart(4) + '   ' + rand(t.byPayment[m].amount)));
-    lines.push('', 'Sales: ' + t.sales + ' · R' + PRICE + '/item');
+    if (till.orders) {
+      lines.push('', 'Orders: ' + t.sales);
+      list.forEach(s => {
+        const b = s.buyer || {};
+        lines.push('', (b.name || '—') + ' · ' + (b.phone || ''),
+          (b.mode === 'collect' ? 'Collecting from: ' : 'Deliver to: ') + (b.address || ''),
+          orderLines(s) + ' · ' + rand(s.amount) + ' ' + s.method);
+      });
+    } else {
+      lines.push('', 'Sales: ' + t.sales + ' · R' + PRICE + '/item');
+    }
     return lines.join('\n');
   }
 
@@ -646,11 +851,16 @@
   });
 
   $('csvBtn').addEventListener('click', () => {
-    const head = ['datetime','date','time','till', ...PRODUCTS.map(p => p.key), 'items','method','amount_zar'];
+    const buyerHead = till.orders ? ['buyer_name','phone','fulfilment','address'] : [];
+    const head = ['datetime','date','time','till', ...PRODUCTS.map(p => p.key),
+                  till.orders ? 'units' : 'items', 'method','amount_zar', ...buyerHead];
     const rows = inScope().map(s => {
-      const d = new Date(s.ts);
+      const d = new Date(s.ts), b = s.buyer || {};
+      const buyer = till.orders
+        ? [b.name || '', b.phone || '', b.mode === 'collect' ? 'collecting' : 'delivery', b.address || '']
+        : [];
       return [ d.toISOString(), dayOf(s.ts), d.toLocaleTimeString('en-ZA', {hour12:false}), till.name,
-               ...PRODUCTS.map(p => s.items[p.key] || 0), s.qty, s.method, s.amount ].join(',');
+               ...PRODUCTS.map(p => s.items[p.key] || 0), s.qty, s.method, s.amount, ...buyer ].map(csvCell).join(',');
     });
     const blob = new Blob([[head.join(','), ...rows].join('\n')], {type:'text/csv'});
     const a = document.createElement('a');
@@ -715,8 +925,10 @@
   }
 
   // ---- boot ----------------------------------------------------------------
-  const picked = localStorage.getItem(PICKED);
-  if (picked && TILLS[picked]) startTill(picked); else showChooser();
+  // Every launch opens Box orders. Older builds remembered a till per device;
+  // that choice is dropped so a phone set to König also starts on Box orders.
+  localStorage.removeItem(PICKED);
+  startTill(DEFAULT_TILL);
 })();
 </script>
 </body>
