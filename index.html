@@ -468,9 +468,9 @@
       <button type="button" id="modeCollect">Collecting</button>
     </div>
     <label class="fld"><span>Name</span><input id="buyerName" autocomplete="off" autocapitalize="words"></label>
-    <label class="fld"><span>Phone</span><input id="buyerPhone" type="tel" inputmode="tel" autocomplete="off"></label>
-    <label class="fld"><span id="addrLabel">Delivery address</span><textarea id="buyerAddr" autocomplete="off"></textarea></label>
-    <p class="err" id="formErr" hidden>Fill in name, phone and address.</p>
+    <label class="fld"><span>Phone (optional)</span><input id="buyerPhone" type="tel" inputmode="tel" autocomplete="off"></label>
+    <label class="fld"><span id="addrLabel">Delivery address (optional)</span><textarea id="buyerAddr" autocomplete="off"></textarea></label>
+    <p class="err" id="formErr" hidden>Fill in the buyer's name.</p>
     <div class="sheet-acts">
       <button type="button" id="formBack">Back</button>
       <button type="submit" id="formSave">Save order</button>
@@ -484,7 +484,7 @@
 
   // ---- configuration -------------------------------------------------------
   const PRICE = 20;                    // R per item on the König and Kerona tills, flat across products and payment methods
-  const BUILD = 'v15';                 // shown on the totals page — keep in step with CACHE in sw.js
+  const BUILD = 'v16';                // shown on the totals page — keep in step with CACHE in sw.js
   const PICKED = 'kerona-till-active'; // which till a device used to remember (pre-v15); cleared on boot
   const LEGACY = 'kerona-till-v1';     // single-till storage, before the König/Kerona split
   const DEFAULT_TILL = 'boxes';        // every launch opens here; the others only via Switch till
@@ -675,12 +675,13 @@
   // ---- buyer details form (Box orders) -------------------------------------
   let pendingMethod = null, mode = 'delivery';
   const fields = ['buyerName','buyerPhone','buyerAddr'];
+  const REQUIRED = ['buyerName'];   // phone and address are optional (team request, 2026-11-22)
 
   function setMode(m){
     mode = m;
     $('modeDelivery').classList.toggle('on', m === 'delivery');
     $('modeCollect').classList.toggle('on', m === 'collect');
-    $('addrLabel').textContent = m === 'collect' ? 'Collecting from' : 'Delivery address';
+    $('addrLabel').textContent = (m === 'collect' ? 'Collecting from' : 'Delivery address') + ' (optional)';
   }
   function openForm(method){
     pendingMethod = method;
@@ -708,8 +709,9 @@
     const v = {}; let ok = true;
     fields.forEach(f => {
       v[f] = $(f).value.trim();
-      $(f).parentNode.classList.toggle('bad', !v[f]);
-      if (!v[f]) ok = false;
+      const missing = REQUIRED.includes(f) && !v[f];
+      $(f).parentNode.classList.toggle('bad', missing);
+      if (missing) ok = false;
     });
     if (!ok) { $('formErr').hidden = false; buzz([20,60,20]); return; }
     const method = pendingMethod;
@@ -788,8 +790,9 @@
       $('orderList').innerHTML = list.length ? list.map(s => {
         const b = s.buyer || {};
         return '<tr><td class="who">' + esc(b.name || '—') +
-          '<small>' + esc(b.phone || '') + '</small>' +
-          '<small>' + (b.mode === 'collect' ? 'Collecting from: ' : 'Deliver to: ') + esc(b.address || '') + '</small>' +
+          (b.phone ? '<small>' + esc(b.phone) + '</small>' : '') +
+          '<small>' + (b.mode === 'collect' ? 'Collecting' : 'Delivery') +
+            (b.address ? ': ' + esc(b.address) : '') + '</small>' +
           '<small>' + esc(orderLines(s)) + '</small></td>' +
           '<td class="r">' + rand(s.amount) + '<small>' + s.method + ' · ' +
           new Date(s.ts).toLocaleTimeString('en-ZA', {hour:'2-digit', minute:'2-digit'}) + '</small></td></tr>';
@@ -825,8 +828,8 @@
       lines.push('', 'Orders: ' + t.sales);
       list.forEach(s => {
         const b = s.buyer || {};
-        lines.push('', (b.name || '—') + ' · ' + (b.phone || ''),
-          (b.mode === 'collect' ? 'Collecting from: ' : 'Deliver to: ') + (b.address || ''),
+        lines.push('', (b.name || '—') + (b.phone ? ' · ' + b.phone : ''),
+          (b.mode === 'collect' ? 'Collecting' : 'Delivery') + (b.address ? ': ' + b.address : ''),
           orderLines(s) + ' · ' + rand(s.amount) + ' ' + s.method);
       });
     } else {

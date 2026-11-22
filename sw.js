@@ -1,6 +1,6 @@
 // Cache-first service worker. Once installed, the app runs with no reception at all.
 // Bump CACHE when you change any file, otherwise devices keep serving the old copy.
-const CACHE = 'kerona-till-v15';
+const CACHE = 'kerona-till-v16';
 const ASSETS = [
   './',
   './index.html',
