@@ -367,7 +367,7 @@
     <button class="ch" data-till="boxes">
       <svg class="ico big" viewBox="0 0 64 64"><use href="#s-kerona"/></svg>
       <span class="ch-name">Box orders</span>
-      <span class="ch-sub">226 g powder · 20-sachet box — single, box of 20, 5 boxes</span>
+      <span class="ch-sub">226 g powder · 20-sachet box — single, case, 5 cases</span>
     </button>
     <button class="ch" data-till="konig">
       <span class="ch-icons" id="chKonigIcons"></span>
@@ -484,7 +484,7 @@
 
   // ---- configuration -------------------------------------------------------
   const PRICE = 20;                    // R per item on the König and Kerona tills, flat across products and payment methods
-  const BUILD = 'v16';                // shown on the totals page — keep in step with CACHE in sw.js
+  const BUILD = 'v17';                // shown on the totals page — keep in step with CACHE in sw.js
   const PICKED = 'kerona-till-active'; // which till a device used to remember (pre-v15); cleared on boot
   const LEGACY = 'kerona-till-v1';     // single-till storage, before the König/Kerona split
   const DEFAULT_TILL = 'boxes';        // every launch opens here; the others only via Switch till
@@ -499,11 +499,17 @@
       // listed column by column: the grid fills powder first, then sachets
       products: [
         box('powder',  '226 g powder',  'powder1',   'Single',        1,   170),
-        box('powder',  '226 g powder',  'powder20',  'Box · 20',     20,  3000),
-        box('powder',  '226 g powder',  'powder100', '5 boxes · 100', 100, 14000),
+        box('powder',  '226 g powder',  'powder20',  'Case · 20',    20,  3000),
+        box('powder',  '226 g powder',  'powder100', '5 cases · 100', 100, 14000),
         box('sachets', '20-sachet box', 'sachets1',  'Single',        1,   140),
-        box('sachets', '20-sachet box', 'sachets20', 'Box · 20',     20,  2500),
-        box('sachets', '20-sachet box', 'sachets100','5 boxes · 100', 100, 11500),
+        box('sachets', '20-sachet box', 'sachets24', 'Case · 24',    24,  3000),
+        box('sachets', '20-sachet box', 'sachets120','5 cases · 120', 120, 13800),
+      ],
+      // sizes no longer sold (sachet case 20 → 24, 2026-11-25): no button, but
+      // orders already recorded keep their own size and price in totals and CSV
+      retired: [
+        box('sachets', '20-sachet box', 'sachets20', 'Box · 20 (old)',      20,  2500),
+        box('sachets', '20-sachet box', 'sachets100','5 boxes · 100 (old)', 100, 11500),
       ]},
     konig: {
       name: 'König', slug: 'konig', store: 'kerona-till-konig-v1',
@@ -555,7 +561,8 @@
 
   // ---- choosing a till -----------------------------------------------------
   function startTill(id){
-    till = TILLS[id]; PRODUCTS = till.products;
+    till = TILLS[id];
+    PRODUCTS = till.products.concat(till.retired || []);   // buttons come from till.products only
 
     // carry over anything recorded before the two tills existed
     if (id === 'konig' && !localStorage.getItem(till.store)) {
@@ -575,9 +582,9 @@
     // The grid shape is driven by how many products the till sells: one gets a
     // full-screen button, two stack full width, five is the 2×2 plus a wide fifth,
     // six is Box orders — two product columns of three order sizes.
-    const shape = {1:'single', 2:'two', 5:'five', 6:'six'}[PRODUCTS.length];
+    const shape = {1:'single', 2:'two', 5:'five', 6:'six'}[till.products.length];
     grid.className = shape ? 'grid ' + shape : 'grid';
-    PRODUCTS.forEach(p => {
+    till.products.forEach(p => {
       const b = document.createElement('button');
       b.className = 'prod'; b.dataset.key = p.key;
       if (p.line) {
@@ -768,6 +775,9 @@
     return out;
   }
 
+  // retired sizes are listed only when an order in scope used them
+  const listed = t => PRODUCTS.filter(p => t.byProduct[p.key] || till.products.includes(p));
+
   function renderTotals(){
     const t = summarise(inScope());
     $('heroRand').textContent = rand(t.amount);
@@ -777,7 +787,7 @@
 
     // Box orders shows how many times each option was ordered; the rand column
     // is the option price × that count.
-    $('byProduct').innerHTML = PRODUCTS.map(p =>
+    $('byProduct').innerHTML = listed(t).map(p =>
       '<tr><td>' + fullName(p) + '</td><td class="q">' + t.byProduct[p.key] +
       '</td><td class="r">' + rand(t.byProduct[p.key] * priceOf(p)) + '</td></tr>').join('');
 
@@ -818,7 +828,7 @@
       'KERONA · ' + till.name + (till.orders ? '' : ' till'), when, '',
       (till.orders ? 'Units: ' : 'Items: ') + t.qty + '   Revenue: ' + rand(t.amount), ''
     ];
-    PRODUCTS.forEach(p => lines.push(till.orders
+    listed(t).forEach(p => lines.push(till.orders
       ? fullName(p) + ': ' + t.byProduct[p.key] + '   ' + rand(t.byProduct[p.key] * priceOf(p))
       : p.label.padEnd(14) + String(t.byProduct[p.key]).padStart(4) + '   ' + rand(t.byProduct[p.key] * PRICE)));
     lines.push('');
