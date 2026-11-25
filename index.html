@@ -484,7 +484,7 @@
 
   // ---- configuration -------------------------------------------------------
   const PRICE = 20;                    // R per item on the König and Kerona tills, flat across products and payment methods
-  const BUILD = 'v17';                // shown on the totals page — keep in step with CACHE in sw.js
+  const BUILD = 'v18';                // shown on the totals page — keep in step with CACHE in sw.js
   const PICKED = 'kerona-till-active'; // which till a device used to remember (pre-v15); cleared on boot
   const LEGACY = 'kerona-till-v1';     // single-till storage, before the König/Kerona split
   const DEFAULT_TILL = 'boxes';        // every launch opens here; the others only via Switch till
@@ -499,17 +499,19 @@
       // listed column by column: the grid fills powder first, then sachets
       products: [
         box('powder',  '226 g powder',  'powder1',   'Single',        1,   170),
-        box('powder',  '226 g powder',  'powder20',  'Case · 20',    20,  3000),
-        box('powder',  '226 g powder',  'powder100', '5 cases · 100', 100, 14000),
+        box('powder',  '226 g powder',  'powder12',  'Case · 12',    12,  1800),
+        box('powder',  '226 g powder',  'powder60',  '5 cases · 60',  60,  8400),
         box('sachets', '20-sachet box', 'sachets1',  'Single',        1,   140),
         box('sachets', '20-sachet box', 'sachets24', 'Case · 24',    24,  3000),
         box('sachets', '20-sachet box', 'sachets120','5 cases · 120', 120, 13800),
       ],
-      // sizes no longer sold (sachet case 20 → 24, 2026-11-25): no button, but
+      // sizes no longer sold (sachet case 20 → 24 and powder case 20 → 12, 2026-11-25): no button, but
       // orders already recorded keep their own size and price in totals and CSV
       retired: [
         box('sachets', '20-sachet box', 'sachets20', 'Box · 20 (old)',      20,  2500),
         box('sachets', '20-sachet box', 'sachets100','5 boxes · 100 (old)', 100, 11500),
+        box('powder',  '226 g powder',  'powder20',  'Case · 20 (old)',     20,  3000),
+        box('powder',  '226 g powder',  'powder100', '5 cases · 100 (old)', 100, 14000),
       ]},
     konig: {
       name: 'König', slug: 'konig', store: 'kerona-till-konig-v1',
